@@ -59,23 +59,21 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 
-// ===================== 安全配置（无任何密码）=====================
 const SUPABASE_URL = "https://gxcfblgizxooslbgvmoj.supabase.co";
 const ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd4Y2ZibGdpenhvb3NsYmd2bW9qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MTU4OTAsImV4cCI6MjA4ODI5MTg5MH0.BaTek6i25igE9C0xwgC9KI1Cgc2GUFlMOzSZ1tFHOZQ";
-// =================================================================
 
 let isAuth = false;
-let currentPass = "";
+let passphrase = "";
 let goods = [], bans = [];
 
-// 默认只读客户端
+// 默认只读
 let client = supabase.createClient(SUPABASE_URL, ANON_KEY);
 
 function showToast(msg) {
   const t = document.getElementById("toast");
   t.textContent = msg;
   t.style.display = "block";
-  setTimeout(() => t.style.display = "none", 1500);
+  setTimeout(() => t.style.display = "none", 1600);
 }
 
 function showPop(html) {
@@ -87,12 +85,11 @@ function hidePop() {
   document.getElementById("mask").style.display = "none";
 }
 
-// ===================== 核心：全靠用户输入密码 =====================
+// ======================== 最终修复版 ========================
 async function doAuth() {
   if (isAuth) {
-    // 退出
     isAuth = false;
-    currentPass = "";
+    passphrase = "";
     client = supabase.createClient(SUPABASE_URL, ANON_KEY);
     document.getElementById("authBtn").textContent = "未认证";
     document.getElementById("authBtn").classList.remove("auth-on");
@@ -101,18 +98,20 @@ async function doAuth() {
     return;
   }
 
-  // 用户输入密码
   const input = prompt("请输入管理密码：");
   if (!input) return;
 
-  // 直接用用户输入的密码作为 app.pass
-  currentPass = input;
+  passphrase = input;
 
-  // 带请求头的客户端
+  // 最强兼容头写法，一定能被 RLS 识别
   client = supabase.createClient(SUPABASE_URL, ANON_KEY, {
+    auth: {
+      persistSession: false
+    },
     global: {
       headers: {
-        "app.pass": currentPass
+        "app.pass": passphrase,
+        "App-Pass": passphrase
       }
     }
   });
@@ -120,10 +119,10 @@ async function doAuth() {
   isAuth = true;
   document.getElementById("authBtn").textContent = "已认证";
   document.getElementById("authBtn").classList.add("auth-on");
-  showToast("认证成功");
+  showToast("认证成功，已开启编辑权限");
   refresh();
 }
-// =================================================================
+// ============================================================
 
 document.getElementById("authBtn").onclick = doAuth;
 
@@ -166,7 +165,7 @@ function doSearch() {
 }
 
 function openEditGood(id) {
-  if (!isAuth) return showToast("未认证");
+  if (!isAuth) return showToast("未认证，请先认证");
   const it = goods.find(x => x.id == id);
   showPop(`
     <h3>编辑商品</h3>
@@ -179,7 +178,7 @@ function openEditGood(id) {
 }
 
 function openEditBad(id) {
-  if (!isAuth) return showToast("未认证");
+  if (!isAuth) return showToast("未认证，请先认证");
   const it = bans.find(x => x.id == id);
   showPop(`
     <h3>编辑封禁</h3>
@@ -193,7 +192,7 @@ function openEditBad(id) {
 }
 
 function openAddGood() {
-  if (!isAuth) return showToast("未认证");
+  if (!isAuth) return showToast("未认证，请先认证");
   showPop(`
     <h3>新增商品</h3>
     <input id="g_name" placeholder="名称">
@@ -204,7 +203,7 @@ function openAddGood() {
 }
 
 function openAddBad() {
-  if (!isAuth) return showToast("未认证");
+  if (!isAuth) return showToast("未认证，请先认证");
   showPop(`
     <h3>新增封禁</h3>
     <input id="b_user" placeholder="玩家名">
