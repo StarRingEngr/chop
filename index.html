@@ -9,16 +9,16 @@
   .card img{width:60px;height:60px;background:#333;border-radius:6px}
   .bad{background:#311;padding:12px;border-radius:8px;margin:8px 0}
   button{padding:10px 14px;background:#08c;color:#fff;border:0;border-radius:6px;cursor:pointer;margin:4px}
-  .admin{background:#222;padding:16px;border-radius:10px;margin:20px 0;display:none}
+  .admin{background:#222;padding:16px;border-radius:10px;margin:20px 0}
   input{width:240px;padding:10px;margin:6px;background:#333;color:#fff;border:1px solid #666;border-radius:6px}
   .status{color:#0f8;margin-bottom:10px}
-  .hidden{display:none}
 </style>
 
-<div class="status" id="loginStatus">未登录</div>
+<div class="status" id="loginStatus">游客模式（仅查看）</div>
 
 <input class="search" id="kw" placeholder="搜索物品" oninput="s()">
-<button onclick="toggleAdmin()">管理员面板（显示/隐藏）</button>
+<button onclick="toggleAdmin()">管理员面板</button>
+<button onclick="showAuth()">输入密钥解锁修改权限</button>
 
 <h2>商品列表</h2>
 <div id="goodList"></div>
@@ -26,13 +26,7 @@
 <h2>封禁名单</h2>
 <div id="badList"></div>
 
-<div class="admin" id="adminPanel">
-  <h3>管理员登录</h3>
-  <input id="e" placeholder="邮箱"><br>
-  <input id="p" type="password" placeholder="密码"><br>
-  <button onclick="login()">登录</button>
-  <button onclick="logout()">退出登录</button>
-
+<div class="admin" id="adminPanel" style="display:none">
   <h3>添加商品</h3>
   <input id="n" placeholder="物品名">
   <input id="pr" placeholder="价格">
@@ -49,95 +43,104 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-const sb = supabase.createClient(
-"https://gxcfblgizxooslbgvmoj.supabase.co",
-"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd4Y2ZibGdpenhvb3NsYmd2bW9qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MTU4OTAsImV4cCI6MjA4ODI5MTg5MH0.BaTek6i25igE9C0xwgC9KI1Cgc2GUFlMOzSZ1tFHOZQ"
-)
+// ========================= 密文常量（你后续直接改这里） =========================
+const ENCRYPTED_KEY = "2cab452a86cc1a46ee9300dc33401135ca30e5749cef346a36b26cac0d96b4bd1f91457bcaee0065d19979d80f75314efe3df445bdd80b192fab76d337b4aaaf2588660bd2c2144b95a378cf0f581f60f43cc26fa3e3551126a848fe769f93dc389b66358de81416d2a019dc50733542f13b9e33bccd251525a87dcb2db2aea07a9c750bd7c62d7a95b51ed415733552b03aef4ee3cc0c1e61be61d371b090827c9f4772cac9187bc4917cfc540f3163c160ef37adf6011c6cba6cab079aa7d70e87492ea9c4037cfbcb3ed32e750255";
+// ==============================================================================
 
-let goods = []
-let isAdmin = false
+const SUPABASE_URL = "https://gxcfblgizxooslbgvmoj.supabase.co";
+let sb = supabase.createClient(SUPABASE_URL, ENCRYPTED_KEY);
+let goods = [];
+let isAdmin = false;
 
-checkAuth()
-load()
-
-function toggleAdmin(){
-  let a = document.getElementById("adminPanel")
-  a.style.display = a.style.display=="block" ? "none" : "block"
+function sha256(str) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(str);
+  return crypto.subtle.digest("SHA-256", data);
 }
 
-async function checkAuth() {
-  const { data } = await sb.auth.getUser()
-  if (data.user) {
-    isAdmin = true
-    document.getElementById("loginStatus").innerText = "已登录（管理员）"
-  } else {
-    isAdmin = false
-    document.getElementById("loginStatus").innerText = "未登录"
+async function xorDecrypt(hexStr, key) {
+  const keyHash = new Uint8Array(await sha256(key));
+  const data = hexToBytes(hexStr);
+  const res = new Uint8Array(data.length);
+  for (let i = 0; i < data.length; i++) {
+    res[i] = data[i] ^ keyHash[i % keyHash.length];
+  }
+  return new TextDecoder().decode(res);
+}
+
+function hexToBytes(hex) {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < hex.length; i += 2) {
+    bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
+  }
+  return bytes;
+}
+
+async function unlockAdmin() {
+  const pwd = prompt("请输入解锁密钥：");
+  if (!pwd) return;
+  try {
+    const realKey = await xorDecrypt(ENCRYPTED_KEY, pwd);
+    sb = supabase.createClient(SUPABASE_URL, realKey);
+    isAdmin = true;
+    document.getElementById("loginStatus").innerText = "已解锁管理权限";
+    alert("解锁成功，可进行修改操作");
+    load();
+  } catch (e) {
+    alert("密钥错误，无法解锁");
   }
 }
 
-async function login(){
-  await sb.auth.signInWithPassword({email:e.value,password:p.value})
-  alert("登录成功")
-  checkAuth()
-  load()
+function showAuth() { unlockAdmin(); }
+function toggleAdmin() {
+  const a = document.getElementById("adminPanel");
+  a.style.display = a.style.display === "block" ? "none" : "block";
 }
 
-async function logout(){
-  await sb.auth.signOut()
-  alert("已退出")
-  checkAuth()
-  load()
-}
+async function load() {
+  let { data: iv } = await sb.from("iv").select("*");
+  let { data: bad } = await sb.from("badlist").select("*");
+  goods = iv || [];
 
-async function load(){
-  let {data:iv} = await sb.from("iv").select("*")
-  let {data:bad} = await sb.from("badlist").select("*")
-  goods = iv||[]
-
-  goodList.innerHTML = goods.map(i=>`
+  goodList.innerHTML = goods.map(i => `
     <div class="card">
       <img src="images/${i.name}.png" onerror="this.remove()">
-      <div><b>${i.name}</b><br>价格：${i.price}<br>${i.info||""}
+      <div><b>${i.name}</b><br>价格：${i.price}<br>${i.info || ""}
       ${isAdmin ? `<br><button onclick=confirmDelg(${i.id})>删除</button>` : ""}
       </div>
-    </div>`).join("")
+    </div>`).join("");
 
-  badList.innerHTML = (bad||[]).map(i=>`
-    <div class="bad">${i.username}｜${i.reason}｜${i.time||""}｜${i.operator||""}
+  badList.innerHTML = (bad || []).map(i => `
+    <div class="bad">${i.username}｜${i.reason}｜${i.time || ""}｜${i.operator || ""}
     ${isAdmin ? `<button onclick=confirmDelb(${i.id})>删除</button>` : ""}
-    </div>`).join("")
+    </div>`).join("");
 }
 
-function confirmDelg(id){
-  if(!isAdmin)return
-  if(confirm("确定删除？")) rg(id)
-}
-function confirmDelb(id){
-  if(!isAdmin)return
-  if(confirm("确定删除？")) rb(id)
-}
+function confirmDelg(id) { if (!isAdmin) return; if (confirm("确定删除？")) rg(id); }
+function confirmDelb(id) { if (!isAdmin) return; if (confirm("确定删除？")) rb(id); }
 
-function s(){
-  let k = kw.value.toLowerCase()
-  let f = goods.filter(i=>i.name.toLowerCase().includes(k))
-  goodList.innerHTML = f.map(i=>`
+function s() {
+  const k = kw.value.toLowerCase();
+  const f = goods.filter(i => i.name.toLowerCase().includes(k));
+  goodList.innerHTML = f.map(i => `
     <div class="card">
       <img src="images/${i.name}.png" onerror="this.remove()">
-      <div><b>${i.name}</b><br>价格：${i.price}<br>${i.info||""}</div>
-    </div>`).join("")
+      <div><b>${i.name}</b><br>价格：${i.price}<br>${i.info || ""}</div>
+    </div>`).join("");
 }
 
-async function addg(){
-  if(!isAdmin){alert("请先登录");return}
-  await sb.from("iv").insert([{name:n.value,price:pr.value,info:inf.value}])
-  load()
+async function addg() {
+  if (!isAdmin) { alert("请先解锁密钥"); return; }
+  await sb.from("iv").insert([{ name: n.value, price: pr.value, info: inf.value }]);
+  load();
 }
-async function rg(id){await sb.from("iv").delete().eq("id",id);load()}
-async function addb(){
-  if(!isAdmin){alert("请先登录");return}
-  await sb.from("badlist").insert([{username:u.value,reason:r.value,time:t.value,operator:op.value}])
-  load()
+async function rg(id) { await sb.from("iv").delete().eq("id", id); load(); }
+async function addb() {
+  if (!isAdmin) { alert("请先解锁密钥"); return; }
+  await sb.from("badlist").insert([{ username: u.value, reason: r.value, time: t.value, operator: op.value }]);
+  load();
 }
-async function rb(id){await sb.from("badlist").delete().eq("id",id);load()}
+async function rb(id) { await sb.from("badlist").delete().eq("id", id); load(); }
+
+load();
 </script>
