@@ -30,26 +30,18 @@
 <div class="top">
   <button class="auth-btn" id="authBtn">未认证</button>
   <div class="right-bar">
-    <div class="ver">v1.0</div>
+    <div class="ver">v1.1.10版</div>
     <button class="donate-btn" onclick="openDonate()">捐赠</button>
   </div>
-</div>
 
 <input class="search" id="searchInput" placeholder="搜索商品" oninput="doSearch()">
 
 <div class="section">
-  <div class="sec-head">
-    <h3>商品列表</h3>
-    <button class="add-btn" onclick="openAddGood()">+</button>
-  </div>
+  <div class="sec-head"><h3>商品列表</h3><button class="add-btn" onclick="openAddGood()">+</button></div>
   <div id="goodList"></div>
 </div>
-
 <div class="section">
-  <div class="sec-head">
-    <h3>封禁名单</h3>
-    <button class="add-btn" onclick="openAddBad()">+</button>
-  </div>
+  <div class="sec-head"><h3>封禁名单</h3><button class="add-btn" onclick="openAddBad()">+</button></div>
   <div id="badList"></div>
 </div>
 
@@ -58,207 +50,50 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-
 const SUPABASE_URL = "https://gxcfblgizxooslbgvmoj.supabase.co";
 const ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd4Y2ZibGdpenhvb3NsYmd2bW9qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MTU4OTAsImV4cCI6MjA4ODI5MTg5MH0.BaTek6i25igE9C0xwgC9KI1Cgc2GUFlMOzSZ1tFHOZQ";
 
-let isAuth = false;
+let auth = false;
+let client = supabase.createClient(SUPABASE_URL, ANON_KEY);
 let goods = [], bans = [];
 
-const readOnlyClient = supabase.createClient(SUPABASE_URL, ANON_KEY);
-let writeClient = supabase.createClient(SUPABASE_URL, ANON_KEY);
+function showToast(m){let t=document.getElementById("toast");t.textContent=m,t.style.display="block",setTimeout(()=>t.style.display="none",1600)}
+function showPop(h){document.getElementById("pop").innerHTML=h,document.getElementById("mask").style.display="flex"}
+function hidePop(){document.getElementById("mask").style.display="none"}
 
-function showToast(msg) {
-  const t = document.getElementById("toast");
-  t.textContent = msg;
-  t.style.display = "block";
-  setTimeout(() => t.style.display = "none", 1600);
+// 纯前端仅记录状态，不校验密码
+async function doAuth(){
+  if(auth){client=supabase.createClient(SUPABASE_URL,ANON_KEY),auth=false,document.getElementById("authBtn").textContent="未认证",document.getElementById("authBtn").classList.remove("auth-on"),showToast("已退出"),await refresh();return}
+  let i=prompt("请输入管理密码：");if(!i)return
+  // 只携带头，不做本地判断，权限全由RLS控制
+  client=supabase.createClient(SUPABASE_URL,ANON_KEY,{global:{headers:{"app.pass":i}}})
+  auth=true,document.getElementById("authBtn").textContent="已认证",document.getElementById("authBtn").classList.add("auth-on"),showToast("已提交认证"),await refresh()
 }
 
-function showPop(html) {
-  document.getElementById("pop").innerHTML = html;
-  document.getElementById("mask").style.display = "flex";
+document.getElementById("authBtn").onclick=doAuth
+
+async function refresh(){
+  let {data:iv}=await client.from("iv").select("*")
+  let {data:bad}=await client.from("badlist").select("*")
+  goods=iv||[],bans=bad||[],renderGood(),renderBad()
 }
 
-function hidePop() {
-  document.getElementById("mask").style.display = "none";
-}
+function renderGood(){goodList.innerHTML=goods.map(i=>`<div class="item" onclick="openEditGood(${i.id})"><div class="name">${i.name}</div><div class="tip">价格：${i.price}</div></div>`).join("")}
+function renderBad(){badList.innerHTML=bans.map(i=>`<div class="item" onclick="openEditBad(${i.id})"><div class="name">${i.username}</div><div class="tip">${i.reason}</div></div>`).join("")}
+function doSearch(){let k=searchInput.value.toLowerCase(),l=goods.filter(x=>x.name.includes(k));goodList.innerHTML=l.map(i=>`<div class="item"><div class="name">${i.name}</div><div class="tip">价格：${i.price}</div></div>`).join("")}
 
-async function doAuth() {
-  if (isAuth) {
-    isAuth = false;
-    writeClient = readOnlyClient;
-    document.getElementById("authBtn").textContent = "未认证";
-    document.getElementById("authBtn").classList.remove("auth-on");
-    showToast("已退出");
-    refresh();
-    return;
-  }
+function openEditGood(id){!auth?showToast("未认证"):showPop(`<h3>编辑</h3><input id="gn" value="${goods.find(x=>x.id==id).name}"><input id="gp" value="${goods.find(x=>x.id==id).price}"><button class="btn-save" onclick="saveGood(${id})">保存</button><button class="btn-del" onclick="delGood(${id})">删除</button>`)}
+function openEditBad(id){!auth?showToast("未认证"):showPop(`<h3>编辑</h3><input id="bu" value="${bans.find(x=>x.id==id).username}"><input id="br" value="${bans.find(x=>x.id==id).reason}"><button class="btn-save" onclick="saveBad(${id})">保存</button><button class="btn-del" onclick="delBad(${id})">删除</button>`)}
+function openAddGood(){!auth?showToast("未认证"):showPop(`<h3>新增</h3><input id="gn" placeholder="名称"><input id="gp" placeholder="价格"><button class="btn-save" onclick="addGood()">添加</button>`)}
+function openAddBad(){!auth?showToast("未认证"):showPop(`<h3>新增</h3><input id="bu" placeholder="玩家名"><input id="br" placeholder="原因"><button class="btn-save" onclick="addBad()">添加</button>`)}
 
-  const input = prompt("请输入密码：");
-  if (!input) return;
+async function addGood(){await client.from("iv").insert([{name:document.getElementById("gn").value,price:document.getElementById("gp").value}]),hidePop(),await refresh(),showToast("完成")}
+async function saveGood(id){await client.from("iv").update({name:document.getElementById("gn").value,price:document.getElementById("gp").value}).eq("id",id),hidePop(),await refresh(),showToast("完成")}
+async function delGood(id){confirm("?")&&(await client.from("iv").delete().eq("id",id),hidePop(),await refresh(),showToast("完成"))}
+async function addBad(){await client.from("badlist").insert([{username:document.getElementById("bu").value,reason:document.getElementById("br").value}]),hidePop(),await refresh(),showToast("完成")}
+async function saveBad(id){await client.from("badlist").update({username:document.getElementById("bu").value,reason:document.getElementById("br").value}).eq("id",id),hidePop(),await refresh(),showToast("完成")}
+async function delBad(id){confirm("?")&&(await client.from("badlist").delete().eq("id",id),hidePop(),await refresh(),showToast("完成"))}
+function openDonate(){confirm("?")&&window.open("https://afdian.com/a/StarRingEngr","_blank")}
 
-  writeClient = supabase.createClient(SUPABASE_URL, ANON_KEY, {
-    global: {
-      headers: {
-        "app.pass": input
-      }
-    }
-  });
-
-  isAuth = true;
-  document.getElementById("authBtn").textContent = "已认证";
-  document.getElementById("authBtn").classList.add("auth-on");
-  showToast("认证成功");
-  refresh();
-}
-
-document.getElementById("authBtn").onclick = doAuth;
-
-async function refresh() {
-  const { data: iv } = await readOnlyClient.from("iv").select("*");
-  const { data: bad } = await readOnlyClient.from("badlist").select("*");
-  goods = iv || [];
-  bans = bad || [];
-  renderGood();
-  renderBad();
-}
-
-function renderGood() {
-  goodList.innerHTML = goods.map(i => `
-    <div class="item" onclick="openEditGood(${i.id})">
-      <div class="name">${i.name}</div>
-      <div class="tip">价格：${i.price} ${i.info || ""}</div>
-    </div>
-  `).join("");
-}
-
-function renderBad() {
-  badList.innerHTML = bans.map(i => `
-    <div class="item" onclick="openEditBad(${i.id})">
-      <div class="name">${i.username}</div>
-      <div class="tip">${i.reason} ${i.time || ""} ${i.operator || ""}</div>
-    </div>
-  `).join("");
-}
-
-function doSearch() {
-  const kw = searchInput.value.toLowerCase();
-  const list = goods.filter(x => x.name.toLowerCase().includes(kw));
-  goodList.innerHTML = list.map(i => `
-    <div class="item">
-      <div class="name">${i.name}</div>
-      <div class="tip">价格：${i.price} ${i.info || ""}</div>
-    </div>
-  `).join("");
-}
-
-function openEditGood(id) {
-  if (!isAuth) return showToast("未认证");
-  const it = goods.find(x => x.id == id);
-  showPop(`
-    <h3>编辑商品</h3>
-    <input value="${it.name}" id="g_name">
-    <input value="${it.price}" id="g_price">
-    <input value="${it.info || ''}" id="g_info">
-    <button class="btn-save" onclick="saveGood(${id})">保存</button>
-    <button class="btn-del" onclick="delGood(${id})">删除</button>
-  `);
-}
-
-function openEditBad(id) {
-  if (!isAuth) return showToast("未认证");
-  const it = bans.find(x => x.id == id);
-  showPop(`
-    <h3>编辑封禁</h3>
-    <input value="${it.username}" id="b_user">
-    <input value="${it.reason}" id="b_reason">
-    <input value="${it.time || ''}" id="b_time">
-    <input value="${it.operator || ''}" id="b_op">
-    <button class="btn-save" onclick="saveBad(${id})">保存</button>
-    <button class="btn-del" onclick="delBad(${id})">删除</button>
-  `);
-}
-
-function openAddGood() {
-  if (!isAuth) return showToast("未认证");
-  showPop(`
-    <h3>新增商品</h3>
-    <input id="g_name" placeholder="名称">
-    <input id="g_price" placeholder="价格">
-    <input id="g_info" placeholder="备注">
-    <button class="btn-save" onclick="addGood()">添加</button>
-  `);
-}
-
-function openAddBad() {
-  if (!isAuth) return showToast("未认证");
-  showPop(`
-    <h3>新增封禁</h3>
-    <input id="b_user" placeholder="玩家名">
-    <input id="b_reason" placeholder="原因">
-    <input id="b_time" placeholder="时间">
-    <input id="b_op" placeholder="操作人">
-    <button class="btn-save" onclick="addBad()">添加</button>
-  `);
-}
-
-async function addGood() {
-  await writeClient.from("iv").insert([{
-    name: document.getElementById("g_name").value,
-    price: document.getElementById("g_price").value,
-    info: document.getElementById("g_info").value
-  }]);
-  hidePop(); refresh(); showToast("成功");
-}
-
-async function saveGood(id) {
-  await writeClient.from("iv").update({
-    name: document.getElementById("g_name").value,
-    price: document.getElementById("g_price").value,
-    info: document.getElementById("g_info").value
-  }).eq("id", id);
-  hidePop(); refresh(); showToast("成功");
-}
-
-async function delGood(id) {
-  if (!confirm("确定？")) return;
-  await writeClient.from("iv").delete().eq("id", id);
-  hidePop(); refresh(); showToast("成功");
-}
-
-async function addBad() {
-  await writeClient.from("badlist").insert([{
-    username: document.getElementById("b_user").value,
-    reason: document.getElementById("b_reason").value,
-    time: document.getElementById("b_time").value,
-    operator: document.getElementById("b_op").value
-  }]);
-  hidePop(); refresh(); showToast("成功");
-}
-
-async function saveBad(id) {
-  await writeClient.from("badlist").update({
-    username: document.getElementById("b_user").value,
-    reason: document.getElementById("b_reason").value,
-    time: document.getElementById("b_time").value,
-    operator: document.getElementById("b_op").value
-  }).eq("id", id);
-  hidePop(); refresh(); showToast("成功");
-}
-
-async function delBad(id) {
-  if (!confirm("确定？")) return;
-  await writeClient.from("badlist").delete().eq("id", id);
-  hidePop(); refresh(); showToast("成功");
-}
-
-function openDonate() {
-  if (confirm("前往爱发电？")) {
-    window.open("https://afdian.com/a/StarRingEngr", "_blank");
-  }
-}
-
-refresh();
-
+refresh()
 </script>
