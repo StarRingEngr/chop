@@ -30,7 +30,7 @@
 <div class="top">
   <button class="auth-btn" id="authBtn">未认证</button>
   <div class="right-bar">
-    <div class="ver">v1.0 安全版</div>
+    <div class="ver">v1.0</div>
     <button class="donate-btn" onclick="openDonate()">捐赠</button>
   </div>
 </div>
@@ -63,11 +63,10 @@ const SUPABASE_URL = "https://gxcfblgizxooslbgvmoj.supabase.co";
 const ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd4Y2ZibGdpenhvb3NsYmd2bW9qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MTU4OTAsImV4cCI6MjA4ODI5MTg5MH0.BaTek6i25igE9C0xwgC9KI1Cgc2GUFlMOzSZ1tFHOZQ";
 
 let isAuth = false;
-let passphrase = "";
 let goods = [], bans = [];
 
-// 默认只读
-let client = supabase.createClient(SUPABASE_URL, ANON_KEY);
+const readOnlyClient = supabase.createClient(SUPABASE_URL, ANON_KEY);
+let writeClient = supabase.createClient(SUPABASE_URL, ANON_KEY);
 
 function showToast(msg) {
   const t = document.getElementById("toast");
@@ -85,33 +84,24 @@ function hidePop() {
   document.getElementById("mask").style.display = "none";
 }
 
-// ======================== 最终修复版 ========================
 async function doAuth() {
   if (isAuth) {
     isAuth = false;
-    passphrase = "";
-    client = supabase.createClient(SUPABASE_URL, ANON_KEY);
+    writeClient = readOnlyClient;
     document.getElementById("authBtn").textContent = "未认证";
     document.getElementById("authBtn").classList.remove("auth-on");
-    showToast("已退出认证");
+    showToast("已退出");
     refresh();
     return;
   }
 
-  const input = prompt("请输入管理密码：");
+  const input = prompt("请输入密码：");
   if (!input) return;
 
-  passphrase = input;
-
-  // 最强兼容头写法，一定能被 RLS 识别
-  client = supabase.createClient(SUPABASE_URL, ANON_KEY, {
-    auth: {
-      persistSession: false
-    },
+  writeClient = supabase.createClient(SUPABASE_URL, ANON_KEY, {
     global: {
       headers: {
-        "app.pass": passphrase,
-        "App-Pass": passphrase
+        "app.pass": input
       }
     }
   });
@@ -119,16 +109,15 @@ async function doAuth() {
   isAuth = true;
   document.getElementById("authBtn").textContent = "已认证";
   document.getElementById("authBtn").classList.add("auth-on");
-  showToast("认证成功，已开启编辑权限");
+  showToast("认证成功");
   refresh();
 }
-// ============================================================
 
 document.getElementById("authBtn").onclick = doAuth;
 
 async function refresh() {
-  const { data: iv } = await client.from("iv").select("*");
-  const { data: bad } = await client.from("badlist").select("*");
+  const { data: iv } = await readOnlyClient.from("iv").select("*");
+  const { data: bad } = await readOnlyClient.from("badlist").select("*");
   goods = iv || [];
   bans = bad || [];
   renderGood();
@@ -165,7 +154,7 @@ function doSearch() {
 }
 
 function openEditGood(id) {
-  if (!isAuth) return showToast("未认证，请先认证");
+  if (!isAuth) return showToast("未认证");
   const it = goods.find(x => x.id == id);
   showPop(`
     <h3>编辑商品</h3>
@@ -178,7 +167,7 @@ function openEditGood(id) {
 }
 
 function openEditBad(id) {
-  if (!isAuth) return showToast("未认证，请先认证");
+  if (!isAuth) return showToast("未认证");
   const it = bans.find(x => x.id == id);
   showPop(`
     <h3>编辑封禁</h3>
@@ -192,7 +181,7 @@ function openEditBad(id) {
 }
 
 function openAddGood() {
-  if (!isAuth) return showToast("未认证，请先认证");
+  if (!isAuth) return showToast("未认证");
   showPop(`
     <h3>新增商品</h3>
     <input id="g_name" placeholder="名称">
@@ -203,7 +192,7 @@ function openAddGood() {
 }
 
 function openAddBad() {
-  if (!isAuth) return showToast("未认证，请先认证");
+  if (!isAuth) return showToast("未认证");
   showPop(`
     <h3>新增封禁</h3>
     <input id="b_user" placeholder="玩家名">
@@ -215,60 +204,61 @@ function openAddBad() {
 }
 
 async function addGood() {
-  await client.from("iv").insert([{
+  await writeClient.from("iv").insert([{
     name: document.getElementById("g_name").value,
     price: document.getElementById("g_price").value,
     info: document.getElementById("g_info").value
   }]);
-  hidePop(); refresh(); showToast("添加成功");
+  hidePop(); refresh(); showToast("成功");
 }
 
 async function saveGood(id) {
-  await client.from("iv").update({
+  await writeClient.from("iv").update({
     name: document.getElementById("g_name").value,
     price: document.getElementById("g_price").value,
     info: document.getElementById("g_info").value
   }).eq("id", id);
-  hidePop(); refresh(); showToast("保存成功");
+  hidePop(); refresh(); showToast("成功");
 }
 
 async function delGood(id) {
-  if (!confirm("确定删除？")) return;
-  await client.from("iv").delete().eq("id", id);
-  hidePop(); refresh(); showToast("删除成功");
+  if (!confirm("确定？")) return;
+  await writeClient.from("iv").delete().eq("id", id);
+  hidePop(); refresh(); showToast("成功");
 }
 
 async function addBad() {
-  await client.from("badlist").insert([{
+  await writeClient.from("badlist").insert([{
     username: document.getElementById("b_user").value,
     reason: document.getElementById("b_reason").value,
     time: document.getElementById("b_time").value,
     operator: document.getElementById("b_op").value
   }]);
-  hidePop(); refresh(); showToast("添加成功");
+  hidePop(); refresh(); showToast("成功");
 }
 
 async function saveBad(id) {
-  await client.from("badlist").update({
+  await writeClient.from("badlist").update({
     username: document.getElementById("b_user").value,
     reason: document.getElementById("b_reason").value,
     time: document.getElementById("b_time").value,
     operator: document.getElementById("b_op").value
   }).eq("id", id);
-  hidePop(); refresh(); showToast("保存成功");
+  hidePop(); refresh(); showToast("成功");
 }
 
 async function delBad(id) {
-  if (!confirm("确定删除？")) return;
-  await client.from("badlist").delete().eq("id", id);
-  hidePop(); refresh(); showToast("删除成功");
+  if (!confirm("确定？")) return;
+  await writeClient.from("badlist").delete().eq("id", id);
+  hidePop(); refresh(); showToast("成功");
 }
 
 function openDonate() {
-  if (confirm("前往爱发电支持作者？")) {
+  if (confirm("前往爱发电？")) {
     window.open("https://afdian.com/a/StarRingEngr", "_blank");
   }
 }
 
 refresh();
+
 </script>
