@@ -3,144 +3,261 @@
 <title>系统面板</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{background:#111;color:#fff;font-family:微软雅黑;padding:20px}
-  .search{width:100%;padding:12px;background:#222;color:#fff;border:1px solid #444;border-radius:6px;font-size:16px;margin-bottom:10px}
-  .card{background:#222;padding:12px;margin:10px 0;border-radius:8px;display:flex;gap:12px;align-items:center}
-  .card img{width:60px;height:60px;background:#333;border-radius:6px}
-  .bad{background:#311;padding:12px;border-radius:8px;margin:8px 0}
-  button{padding:10px 14px;background:#08c;color:#fff;border:0;border-radius:6px;cursor:pointer;margin:4px}
-  .admin{background:#222;padding:16px;border-radius:10px;margin:20px 0}
-  input{width:240px;padding:10px;margin:6px;background:#333;color:#fff;border:1px solid #666;border-radius:6px}
-  .status{color:#0f8;margin-bottom:10px}
+  body{background:#121212;color:#e0e0e0;font-family:微软雅黑}
+  .top{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:#1a1a1a}
+  .auth-btn{padding:9px 14px;background:#333;color:#fff;border:0;border-radius:6px;cursor:pointer}
+  .auth-on{background:#00b866}
+  .right-bar{display:flex;gap:10px;align-items:center}
+  .donate-btn{padding:9px 14px;background:#b85a00;color:#fff;border:0;border-radius:6px;cursor:pointer}
+  .ver{color:#888;font-size:12px}
+  .search{width:100%;padding:12px 16px;background:#222;color:#fff;border:0;font-size:14px}
+  .section{padding:10px 16px}
+  .sec-head{display:flex;justify-content:space-between;align-items:center;padding:8px 0}
+  .sec-head h3{font-size:14px;color:#ccc}
+  .add-btn{width:34px;height:34px;border-radius:6px;background:#0088cc;color:#fff;border:0;font-size:18px;cursor:pointer}
+  .item{background:#1c1c1c;padding:12px;border-radius:8px;margin-bottom:8px}
+  .item .name{font-weight:bold}
+  .item .tip{font-size:12px;color:#999;margin-top:4px}
+  .mask{position:fixed;inset:0;background:#000000cc;display:none;align-items:center;justify-content:center}
+  .pop{background:#222;width:92%;max-width:380px;padding:16px;border-radius:12px}
+  .pop input{width:100%;padding:10px;margin:6px 0;background:#333;color:#fff;border:0;border-radius:6px}
+  .pop button{margin-top:8px;padding:10px;width:100%;border:0;border-radius:6px}
+  .btn-save{background:#0088cc;color:#fff}
+  .btn-del{background:#cc3333;color:#fff;margin-top:6px}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#2a2a2a;color:#fff;padding:10px 16px;border-radius:8px;display:none}
 </style>
 
-<div class="status" id="loginStatus">游客模式（仅查看）</div>
-
-<input class="search" id="kw" placeholder="搜索物品" oninput="s()">
-<button onclick="toggleAdmin()">管理员面板</button>
-<button onclick="showAuth()">输入密钥解锁修改权限</button>
-
-<h2>商品列表</h2>
-<div id="goodList"></div>
-
-<h2>封禁名单</h2>
-<div id="badList"></div>
-
-<div class="admin" id="adminPanel" style="display:none">
-  <h3>添加商品</h3>
-  <input id="n" placeholder="物品名">
-  <input id="pr" placeholder="价格">
-  <input id="inf" placeholder="备注"><br>
-  <button onclick="addg()">添加商品</button>
-
-  <h3>添加封禁</h3>
-  <input id="u" placeholder="玩家名">
-  <input id="r" placeholder="原因">
-  <input id="t" placeholder="时间">
-  <input id="op" placeholder="操作人"><br>
-  <button onclick="addb()">添加封禁</button>
+<div class="top">
+  <button class="auth-btn" id="authBtn">未认证</button>
+  <div class="right-bar">
+    <div class="ver">v1.0 安全版</div>
+    <button class="donate-btn" onclick="openDonate()">捐赠</button>
+  </div>
 </div>
+
+<input class="search" id="searchInput" placeholder="搜索商品" oninput="doSearch()">
+
+<div class="section">
+  <div class="sec-head">
+    <h3>商品列表</h3>
+    <button class="add-btn" onclick="openAddGood()">+</button>
+  </div>
+  <div id="goodList"></div>
+</div>
+
+<div class="section">
+  <div class="sec-head">
+    <h3>封禁名单</h3>
+    <button class="add-btn" onclick="openAddBad()">+</button>
+  </div>
+  <div id="badList"></div>
+</div>
+
+<div class="mask" id="mask"><div class="pop" id="pop"></div></div>
+<div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-// ========================= 密文常量（你后续直接改这里） =========================
-const ENCRYPTED_KEY = "2cab452a86cc1a46ee9300dc33401135ca30e5749cef346a36b26cac0d96b4bd1f91457bcaee0065d19979d80f75314efe3df445bdd80b192fab76d337b4aaaf2588660bd2c2144b95a378cf0f581f60f43cc26fa3e3551126a848fe769f93dc389b66358de81416d2a019dc50733542f13b9e33bccd251525a87dcb2db2aea07a9c750bd7c62d7a95b51ed415733552b03aef4ee3cc0c1e61be61d371b090827c9f4772cac9187bc4917cfc540f3163c160ef37adf6011c6cba6cab079aa7d70e87492ea9c4037cfbcb3ed32e750255";
-// ==============================================================================
-
+// ===================== 安全配置 =====================
 const SUPABASE_URL = "https://gxcfblgizxooslbgvmoj.supabase.co";
+const ENCRYPTED_KEY = "2cab452a86cc1a46ee9300dc33401135ca30e5749cef346a36b26cac0d96b4bd1f91457bcaee0065d19979d80f75314efe3df445bdd80b192fab76d337b4aaaf2588660bd2c2144b95a378cf0f581f60f43cc26fa3e3551126a848fe769f93dc389b66358de81416d2a019dc50733542f13b9e33bccd251525a87dcb2db2aea07a9c750bd7c62d7a95b51ed415733552b03aef4ee3cc0c1e61be61d371b090827c9f4772cac9187bc4917cfc540f3163c160ef37adf6011c6cba6cab079aa7d70e87492ea9c4037cfbcb3ed32e750255";
+const ADMIN_PASS = "123456Wei";
+// ====================================================
+
 let sb = supabase.createClient(SUPABASE_URL, ENCRYPTED_KEY);
-let goods = [];
-let isAdmin = false;
+let admin = false;
+let goods = [], bans = [];
 
-function sha256(str) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(str);
-  return crypto.subtle.digest("SHA-256", data);
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.style.display = "block";
+  setTimeout(() => t.style.display = "none", 1400);
+}
+function showPop(html) {
+  document.getElementById("pop").innerHTML = html;
+  document.getElementById("mask").style.display = "flex";
+}
+function hidePop() {
+  document.getElementById("mask").style.display = "none";
 }
 
-async function xorDecrypt(hexStr, key) {
-  const keyHash = new Uint8Array(await sha256(key));
-  const data = hexToBytes(hexStr);
-  const res = new Uint8Array(data.length);
-  for (let i = 0; i < data.length; i++) {
-    res[i] = data[i] ^ keyHash[i % keyHash.length];
+// 密码解密
+async function sha256(s) {
+  return crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+}
+async function decodeKey(hex, pwd) {
+  const kh = new Uint8Array(await sha256(pwd));
+  const buf = new Uint8Array(hex.match(/.{1,2}/g).map(x => parseInt(x,16)));
+  return new TextDecoder().decode(buf.map((c,i)=>c^kh[i%kh.length]));
+}
+
+// 认证
+async function doAuth() {
+  if (admin) {
+    admin = false;
+    sb = supabase.createClient(SUPABASE_URL, ENCRYPTED_KEY);
+    document.getElementById("authBtn").textContent = "未认证";
+    document.getElementById("authBtn").classList.remove("auth-on");
+    showToast("已退出认证");
+    refresh();
+    return;
   }
-  return new TextDecoder().decode(res);
-}
-
-function hexToBytes(hex) {
-  const bytes = new Uint8Array(hex.length / 2);
-  for (let i = 0; i < hex.length; i += 2) {
-    bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
-  }
-  return bytes;
-}
-
-async function unlockAdmin() {
-  const pwd = prompt("请输入解锁密钥：");
-  if (!pwd) return;
+  const key = prompt("请输入解密密钥：");
+  if (!key) return;
   try {
-    const realKey = await xorDecrypt(ENCRYPTED_KEY, pwd);
-    sb = supabase.createClient(SUPABASE_URL, realKey);
-    isAdmin = true;
-    document.getElementById("loginStatus").innerText = "已解锁管理权限";
-    alert("解锁成功，可进行修改操作");
-    load();
-  } catch (e) {
-    alert("密钥错误，无法解锁");
+    const realKey = await decodeKey(ENCRYPTED_KEY, key);
+    sb = supabase.createClient(SUPABASE_URL, realKey, {
+      global: { headers: { "app.pass": ADMIN_PASS } }
+    });
+    admin = true;
+    document.getElementById("authBtn").textContent = "已认证";
+    document.getElementById("authBtn").classList.add("auth-on");
+    showToast("认证成功");
+    refresh();
+  } catch {
+    alert("密钥错误");
+  }
+}
+document.getElementById("authBtn").onclick = doAuth;
+
+// 数据刷新
+async function refresh() {
+  const { data: iv } = await sb.from("iv").select("*");
+  const { data: bad } = await sb.from("badlist").select("*");
+  goods = iv || []; bans = bad || [];
+  renderGood(); renderBad();
+}
+
+function renderGood() {
+  goodList.innerHTML = goods.map(i => `
+    <div class="item" onclick="openEditGood(${i.id})">
+      <div class="name">${i.name}</div>
+      <div class="tip">价格：${i.price} ${i.info||""}</div>
+    </div>`).join("");
+}
+function renderBad() {
+  badList.innerHTML = bans.map(i => `
+    <div class="item" onclick="openEditBad(${i.id})">
+      <div class="name">${i.username}</div>
+      <div class="tip">${i.reason} ${i.time||""} ${i.operator||""}</div>
+    </div>`).join("");
+}
+
+// 搜索
+function doSearch() {
+  const kw = searchInput.value.toLowerCase();
+  const list = goods.filter(x => x.name.toLowerCase().includes(kw));
+  goodList.innerHTML = list.map(i => `
+    <div class="item">
+      <div class="name">${i.name}</div>
+      <div class="tip">价格：${i.price} ${i.info||""}</div>
+    </div>`).join("");
+}
+
+// 打开编辑
+function openEditGood(id) {
+  if (!admin) return showToast("未认证，请先认证");
+  const it = goods.find(x => x.id == id);
+  showPop(`
+    <h3>编辑商品</h3>
+    <input value="${it.name}" id="g_name">
+    <input value="${it.price}" id="g_price">
+    <input value="${it.info||''}" id="g_info">
+    <button class="btn-save" onclick="saveGood(${id})">保存</button>
+    <button class="btn-del" onclick="deleteGood(${id})">删除</button>
+  `);
+}
+function openEditBad(id) {
+  if (!admin) return showToast("未认证，请先认证");
+  const it = bans.find(x => x.id == id);
+  showPop(`
+    <h3>编辑封禁</h3>
+    <input value="${it.username}" id="b_user">
+    <input value="${it.reason}" id="b_reason">
+    <input value="${it.time||''}" id="b_time">
+    <input value="${it.operator||''}" id="b_op">
+    <button class="btn-save" onclick="saveBad(${id})">保存</button>
+    <button class="btn-del" onclick="deleteBad(${id})">删除</button>
+  `);
+}
+
+// 新增
+function openAddGood() {
+  if (!admin) return showToast("未认证");
+  showPop(`
+    <h3>新增商品</h3>
+    <input placeholder="名称" id="g_name">
+    <input placeholder="价格" id="g_price">
+    <input placeholder="备注" id="g_info">
+    <button class="btn-save" onclick="addGood()">确认添加</button>
+  `);
+}
+function openAddBad() {
+  if (!admin) return showToast("未认证");
+  showPop(`
+    <h3>新增封禁</h3>
+    <input placeholder="玩家名" id="b_user">
+    <input placeholder="原因" id="b_reason">
+    <input placeholder="时间" id="b_time">
+    <input placeholder="操作人" id="b_op">
+    <button class="btn-save" onclick="addBad()">确认添加</button>
+  `);
+}
+
+// 数据库操作
+async function addGood() {
+  await sb.from("iv").insert([{
+    name: document.getElementById("g_name").value,
+    price: document.getElementById("g_price").value,
+    info: document.getElementById("g_info").value
+  }]);
+  hidePop(); refresh(); showToast("添加成功");
+}
+async function saveGood(id) {
+  await sb.from("iv").update({
+    name: document.getElementById("g_name").value,
+    price: document.getElementById("g_price").value,
+    info: document.getElementById("g_info").value
+  }).eq("id", id);
+  hidePop(); refresh(); showToast("保存成功");
+}
+async function deleteGood(id) {
+  if (!confirm("确定删除？")) return;
+  await sb.from("iv").delete().eq("id", id);
+  hidePop(); refresh(); showToast("删除成功");
+}
+
+async function addBad() {
+  await sb.from("badlist").insert([{
+    username: document.getElementById("b_user").value,
+    reason: document.getElementById("b_reason").value,
+    time: document.getElementById("b_time").value,
+    operator: document.getElementById("b_op").value
+  }]);
+  hidePop(); refresh(); showToast("添加成功");
+}
+async function saveBad(id) {
+  await sb.from("badlist").update({
+    username: document.getElementById("b_user").value,
+    reason: document.getElementById("b_reason").value,
+    time: document.getElementById("b_time").value,
+    operator: document.getElementById("b_op").value
+  }).eq("id", id);
+  hidePop(); refresh(); showToast("保存成功");
+}
+async function deleteBad(id) {
+  if (!confirm("确定删除？")) return;
+  await sb.from("badlist").delete().eq("id", id);
+  hidePop(); refresh(); showToast("删除成功");
+}
+
+// 捐赠
+function openDonate() {
+  if (confirm("支持开发，前往捐赠？")) {
+    window.open("https://afdian.com/a/StarRingEngr", "_blank");
   }
 }
 
-function showAuth() { unlockAdmin(); }
-function toggleAdmin() {
-  const a = document.getElementById("adminPanel");
-  a.style.display = a.style.display === "block" ? "none" : "block";
-}
-
-async function load() {
-  let { data: iv } = await sb.from("iv").select("*");
-  let { data: bad } = await sb.from("badlist").select("*");
-  goods = iv || [];
-
-  goodList.innerHTML = goods.map(i => `
-    <div class="card">
-      <img src="images/${i.name}.png" onerror="this.remove()">
-      <div><b>${i.name}</b><br>价格：${i.price}<br>${i.info || ""}
-      ${isAdmin ? `<br><button onclick=confirmDelg(${i.id})>删除</button>` : ""}
-      </div>
-    </div>`).join("");
-
-  badList.innerHTML = (bad || []).map(i => `
-    <div class="bad">${i.username}｜${i.reason}｜${i.time || ""}｜${i.operator || ""}
-    ${isAdmin ? `<button onclick=confirmDelb(${i.id})>删除</button>` : ""}
-    </div>`).join("");
-}
-
-function confirmDelg(id) { if (!isAdmin) return; if (confirm("确定删除？")) rg(id); }
-function confirmDelb(id) { if (!isAdmin) return; if (confirm("确定删除？")) rb(id); }
-
-function s() {
-  const k = kw.value.toLowerCase();
-  const f = goods.filter(i => i.name.toLowerCase().includes(k));
-  goodList.innerHTML = f.map(i => `
-    <div class="card">
-      <img src="images/${i.name}.png" onerror="this.remove()">
-      <div><b>${i.name}</b><br>价格：${i.price}<br>${i.info || ""}</div>
-    </div>`).join("");
-}
-
-async function addg() {
-  if (!isAdmin) { alert("请先解锁密钥"); return; }
-  await sb.from("iv").insert([{ name: n.value, price: pr.value, info: inf.value }]);
-  load();
-}
-async function rg(id) { await sb.from("iv").delete().eq("id", id); load(); }
-async function addb() {
-  if (!isAdmin) { alert("请先解锁密钥"); return; }
-  await sb.from("badlist").insert([{ username: u.value, reason: r.value, time: t.value, operator: op.value }]);
-  load();
-}
-async function rb(id) { await sb.from("badlist").delete().eq("id", id); load(); }
-
-load();
+refresh();
 </script>
