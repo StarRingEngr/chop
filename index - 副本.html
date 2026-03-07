@@ -475,7 +475,7 @@
   <div class="right-bar">
     <button class="mode-btn" id="modeToggle">切换亮色模式</button>
     <button class="setting-btn" id="settingBtn">设置</button>
-    <div class="ver">v1.10.1完整版</div>
+    <div class="ver">v1.9.1完整版</div>
     <button class="donate-btn" onclick="openDonate()">捐赠</button>
   </div>
 </div>
@@ -621,10 +621,9 @@ function toggleCollapse(id) {
   }
 }
 
-function renderItemImage(itemName, info) {
-  // 严格判断：info存在 + 非空 + 非纯空格，才用info；否则用itemName
-  const imgName = (info && info.trim()) ? info.trim() : itemName;
-  return `<img src="./images/${imgName}.png" class="item-img" onerror="this.style.display='none'">`;
+function renderItemImage(itemName) {
+  const imgPath = `images/${itemName}.png`;
+  return `<img src="${imgPath}" class="item-img" onerror="this.style.display='none'">`;
 }
 
 function getCurrentTime() {
@@ -1082,7 +1081,7 @@ function renderGood() {
   
   goodList.innerHTML = goods.map(item => `
     <div class="item" onclick="openEditGood(${item.id})">
-      ${renderItemImage(item.name, item.info)}
+      ${renderItemImage(item.name)}
       <div class="item-content">
         <div class="name">${item.name}</div>
         <div class="tip">价格：${item.price}</div>
@@ -1316,7 +1315,7 @@ document.getElementById("searchInput").addEventListener("input", () => {
   
   goodList.innerHTML = filteredGoods.map(item => `
     <div class="item" onclick="openEditGood(${item.id})">
-      ${renderItemImage(item.name, item.info)}
+      ${renderItemImage(item.name)}
       <div class="item-content">
         <div class="name">${item.name}</div>
         <div class="tip">价格：${item.price}</div>
