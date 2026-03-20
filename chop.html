@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>系统面板 - 管理后台</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+  .right-bar .ver {
+    margin-left: 0;
+  }
+</style>
+
+<div class="top">
+  <button class="auth-btn" id="authBtn">游客模式</button>
+  <div class="right-bar">
+    <button class="mode-btn" id="modeToggle">切换亮色模式</button>
+    <div class="ver">v1.10.1完整版</div>
+    <button class="donate-btn" onclick="openDonate()">捐赠</button>
+  </div>
+</div>
+
+<div class="custom-welcome">
+  欢迎来到chop！这里可以查看各种商品价格以及黑名单
+</div>
+
+<input class="search" id="searchInput" placeholder="搜索商品">
+
+<!-- 商品折叠面板 -->
+<div class="collapse-section">
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:var(--bg-collapse-header);">
+    <div class="collapse-header" onclick="toggleCollapse('goodCollapse')" style="flex:1;">
+      <div style="display:flex;align-items:center">
+        <h3>商品列表</h3>
+        <span class="collapse-custom-text">点击此条目可折叠/展开</span>
+      </div>
+      <div class="collapse-toggle" id="goodToggle">^</div>
+    </div>
+    <button class="add-btn" onclick="openAddGood();event.stopPropagation()">+</button>
+  </div>
+  <div class="collapse-body" id="goodCollapse">
+    <div id="goodList" class="list-container"></div>
+  </div>
+</div>
+
+<!-- 封禁名单折叠面板 -->
+<div class="collapse-section">
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:var(--bg-collapse-header);">
+    <div class="collapse-header" onclick="toggleCollapse('badCollapse')" style="flex:1;">
+      <div style="display:flex;align-items:center">
+        <h3>封禁名单(黑名单)</h3>
+        <span class="collapse-custom-text">点击此条目可折叠/展开</span>
+      </div>
+      <div class="collapse-toggle" id="badToggle">^</div>
+    </div>
+    <button class="add-btn" onclick="openAddBad();event.stopPropagation()">+</button>
+  </div>
+  <div class="collapse-body" id="badCollapse">
+    <div id="badList" class="list-container"></div>
+  </div>
+</div>
+
+<div class="mask" id="mask"><div class="pop" id="pop"></div></div>
+<div class="toast" id="toast"></div>
+
+<script src="shared.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+// ===================== Supabase 配置 =====================
+const SUPABASE_URL = "https://gxcfblgizxooslbgvmoj.supabase.co";
+const READ_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd4Y2ZibGdpenhvb3NsYmd2bW9qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MTU4OTAsImV4cCI6MjA4ODI5MTg5MH0.BaTek6i25igE9C0xwgC9KI1Cgc2GUFlMOzSZ1tFHOZQ";
+const CIPHER = "2cab452a86cc1a46ee9300dc33401135ca30e5749cef346a36b26cac0d96b4bd1f91457bcaee0065d19979d80f75314efe3df445bdd80b192fab76d337b4aaaf2588660bd2c2144b95a378cf0f581f60f43cc26fa3e3551126a848fe769f93dc389b66358de81416d2a019dc50733542f13b9e33bccd251525a87dcb2db2aea07a9c750bd7c62d7a95b51ed415733552b03aef4ee3cc0c1e61be61d371b090827c9f4772cac9187bc4917cfc540f3163c160ef37adf6011c6cba6cab079aa7d70e87492ea9c4037cfbcb3ed32e750255";
+
+let isAdmin = false;
+let goods = [], bans = [];
+let client = supabase.createClient(SUPABASE_URL, READ_KEY);
+
+// ===================== 工具函数 =====================
+function showPop(html) {
+  document.getElementById("pop").innerHTML = html;
+  document.getElementById("mask").style.display = "flex";
+}
+
+function hidePop() {
+  document.getElementById("mask").style.display = "none";
+}
+
+function toggleCollapse(id) {
+  const body = document.getElementById(id);
+  const toggle = document.getElementById(id.replace('Collapse', 'Toggle'));
+  if (body.style.display === 'none') {
+    body.style.display = 'block';
+    toggle.textContent = '^';
+  } else {
+    body.style.display = 'none';
+    toggle.textContent = 'v';
+  }
+}
+
+function renderItemImage(itemName, info) {
+  const imgName = (info && info.trim()) ? info.trim() : itemName;
+  return `<img src="./images/${imgName}.png" class="item-img" onerror="this.style.display='none'">`;
+}
+
+// ===================== 认证和数据加载 =====================
+async function xorDecrypt(hexStr, key) {
+  const enc = new TextEncoder();
+  const keyData = enc.encode(key);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", keyData);
+  const hashBytes = new Uint8Array(hashBuffer);
+  const dataBytes = new Uint8Array(hexStr.match(/.{1,2}/g).map(b => parseInt(b,16)));
+  const res = new Uint8Array(dataBytes.length);
+  for(let i=0; i<dataBytes.length; i++) res[i] = dataBytes[i] ^ hashBytes[i % hashBytes.length];
+  return new TextDecoder().decode(res);
+}
+
+async function doAuth() {
+  if (isAdmin) {
+    isAdmin = false;
+    client = supabase.createClient(SUPABASE_URL, READ_KEY);
+    document.getElementById("authBtn").textContent = "游客模式";
+    document.getElementById("authBtn").classList.remove("auth-on");
+    showToast("已退出登录，恢复游客只读模式");
+    refresh();
+    return;
+  }
+  const password = prompt("输入管理员密码\n密码错误只需退出登录即可解决！");
+  if (!password) return;
+  showToast("验证中...");
+  try {
+    const adminKey = await xorDecrypt(CIPHER, password);
+    client = supabase.createClient(SUPABASE_URL, adminKey);
+    isAdmin = true;
+    document.getElementById("authBtn").textContent = "退出登录";
+    document.getElementById("authBtn").classList.add("auth-on");
+    showToast("密码正确，已获得管理员权限");
+    refresh();
+  } catch (e) {
+    showToast("密码错误！请重试");
+  }
+}
+
+async function refresh() {
+  try {
+    const { data: iv } = await client.from("iv").select("*");
+    const { data: bad } = await client.from("badlist").select("*");
+    goods = iv || [];
+    bans = bad || [];
+    renderGood();
+    renderBad();
+  } catch (e) {
+    console.error('数据加载失败:', e);
+    showToast("数据加载失败，请重试");
+  }
+}
+
+function renderGood() {
+  const goodList = document.getElementById('goodList');
+  if (goods.length === 0) {
+    goodList.innerHTML = '<div style="padding:20px;text-align:center;color:var(--color-tip)">暂无商品数据</div>';
+    return;
+  }
+  goodList.innerHTML = goods.map(item => `
+    <div class="item" onclick="openEditGood(${item.id})">
+      ${renderItemImage(item.name, item.info)}
+      <div class="item-content">
+        <div class="name">${item.name}</div>
+        <div class="tip">价格：${item.price}</div>
+        ${item.info ? `<div class="tip-detail">备注：${item.info}</div>` : ''}
+      </div>
+    </div>
+  `).join("");
+}
+
+function renderBad() {
+  const badList = document.getElementById('badList');
+  if (bans.length === 0) {
+    badList.innerHTML = '<div style="padding:20px;text-align:center;color:var(--color-tip)">暂无封禁记录</div>';
+    return;
+  }
+  badList.innerHTML = bans.map(item => `
+    <div class="item" onclick="openEditBad(${item.id})">
+      ${renderItemImage(item.username)}
+      <div class="item-content">
+        <div class="name">${item.username}</div>
+        <div class="tip">原因：${item.reason}</div>
+        ${item.time ? `<div class="tip-detail">时间：${item.time}</div>` : ''}
+        ${item.operator ? `<div class="tip-detail">操作人：${item.operator}</div>` : ''}
+      </div>
+    </div>
+  `).join("");
+}
+
+// ===================== 商品管理 =====================
+function openEditGood(id) {
+  if (!isAdmin) return showToast("无管理员权限，请先验证密码");
+  const item = goods.find(x => x.id === id);
+  if (!item) return showToast("商品不存在");
+  showPop(`
+    <button class="pop-close" onclick="hidePop()">×</button>
+    <h3 class="pop-title">编辑商品</h3>
+    <input id="gn" value="${item.name}" placeholder="商品名称">
+    <input id="gp" value="${item.price}" placeholder="商品价格">
+    <input id="gi" value="${item.info || ''}" placeholder="商品备注">
+    <button class="btn-save" onclick="saveGood(${id})">保存</button>
+    <button class="btn-del" onclick="delGood(${id})">删除</button>
+    <button class="btn-cancel" onclick="hidePop()">取消</button>
+  `);
+}
+
+function openAddGood() {
+  if (!isAdmin) return showToast("无管理员权限，请先验证密码");
+  showPop(`
+    <button class="pop-close" onclick="hidePop()">×</button>
+    <h3 class="pop-title">新增商品</h3>
+    <input id="gn" placeholder="商品名称">
+    <input id="gp" placeholder="商品价格">
+    <input id="gi" placeholder="商品备注">
+    <button class="btn-save" onclick="addGood()">添加</button>
+    <button class="btn-cancel" onclick="hidePop()">取消</button>
+  `);
+}
+
+async function addGood() {
+  const name = document.getElementById('gn').value.trim();
+  const price = document.getElementById('gp').value.trim();
+  const info = document.getElementById('gi').value.trim();
+  if (!name) return showToast("商品名称不能为空");
+  try {
+    await client.from("iv").insert([{ name, price, info }]);
+    hidePop();
+    refresh();
+    showToast("商品添加成功");
+  } catch (e) {
+    console.error('添加商品失败:', e);
+    showToast("添加商品失败，请重试");
+  }
+}
+
+async function saveGood(id) {
+  const name = document.getElementById('gn').value.trim();
+  const price = document.getElementById('gp').value.trim();
+  const info = document.getElementById('gi').value.trim();
+  if (!name) return showToast("商品名称不能为空");
+  try {
+    await client.from("iv").update({ name, price, info }).eq("id", id);
+    hidePop();
+    refresh();
+    showToast("商品保存成功");
+  } catch (e) {
+    console.error('保存商品失败:', e);
+    showToast("保存商品失败，请重试");
+  }
+}
+
+async function delGood(id) {
+  if (!confirm("确定删除该商品吗？")) return;
+  try {
+    await client.from("iv").delete().eq("id", id);
+    hidePop();
+    refresh();
+    showToast("商品删除成功");
+  } catch (e) {
+    console.error('删除商品失败:', e);
+    showToast("删除商品失败，请重试");
+  }
+}
+
+// ===================== 封禁管理 =====================
+function openEditBad(id) {
+  if (!isAdmin) return showToast("无管理员权限，请先验证密码");
+  const item = bans.find(x => x.id === id);
+  if (!item) return showToast("封禁记录不存在");
+  showPop(`
+    <button class="pop-close" onclick="hidePop()">×</button>
+    <h3 class="pop-title">编辑封禁</h3>
+    <input id="bu" value="${item.username}" placeholder="玩家名">
+    <input id="br" value="${item.reason}" placeholder="封禁原因">
+    <div class="input-group">
+      <input id="bt" value="${item.time || ''}" placeholder="封禁时间">
+      <button class="time-btn" onclick="fillCurrentTime('bt')">当前时间</button>
+    </div>
+    <input id="bo" value="${item.operator || ''}" placeholder="操作人">
+    <button class="btn-save" onclick="saveBad(${id})">保存</button>
+    <button class="btn-del" onclick="delBad(${id})">删除</button>
+    <button class="btn-cancel" onclick="hidePop()">取消</button>
+  `);
+}
+
+function openAddBad() {
+  if (!isAdmin) return showToast("无管理员权限，请先验证密码");
+  showPop(`
+    <button class="pop-close" onclick="hidePop()">×</button>
+    <h3 class="pop-title">新增封禁</h3>
+    <input id="bu" placeholder="玩家名">
+    <input id="br" placeholder="封禁原因">
+    <div class="input-group">
+      <input id="bt" placeholder="封禁时间">
+      <button class="time-btn" onclick="fillCurrentTime('bt')">当前时间</button>
+    </div>
+    <input id="bo" placeholder="操作人">
+    <button class="btn-save" onclick="addBad()">添加</button>
+    <button class="btn-cancel" onclick="hidePop()">取消</button>
+  `);
+}
+
+async function addBad() {
+  const username = document.getElementById('bu').value.trim();
+  const reason = document.getElementById('br').value.trim();
+  const time = document.getElementById('bt').value.trim() || getCurrentTime();
+  const operator = document.getElementById('bo').value.trim();
+  if (!username) return showToast("玩家名不能为空");
+  if (!reason) return showToast("封禁原因不能为空");
+  try {
+    await client.from("badlist").insert([{ username, reason, time, operator }]);
+    hidePop();
+    refresh();
+    showToast("封禁记录添加成功");
+  } catch (e) {
+    console.error('添加封禁失败:', e);
+    showToast("添加封禁失败，请重试");
+  }
+}
+
+async function saveBad(id) {
+  const username = document.getElementById('bu').value.trim();
+  const reason = document.getElementById('br').value.trim();
+  const time = document.getElementById('bt').value.trim();
+  const operator = document.getElementById('bo').value.trim();
+  if (!username) return showToast("玩家名不能为空");
+  if (!reason) return showToast("封禁原因不能为空");
+  try {
+    await client.from("badlist").update({ username, reason, time, operator }).eq("id", id);
+    hidePop();
+    refresh();
+    showToast("封禁记录保存成功");
+  } catch (e) {
+    console.error('保存封禁失败:', e);
+    showToast("保存封禁失败，请重试");
+  }
+}
+
+async function delBad(id) {
+  if (!confirm("确定删除该封禁记录吗？")) return;
+  try {
+    await client.from("badlist").delete().eq("id", id);
+    hidePop();
+    refresh();
+    showToast("封禁记录删除成功");
+  } catch (e) {
+    console.error('删除封禁失败:', e);
+    showToast("删除封禁失败，请重试");
+  }
+}
+
+function openDonate() {
+  if (confirm("确定前往爱发电支持作者吗？")) window.open("https://ifdian.net/a/StarRingEngr","_blank");
+}
+
+// ===================== 搜索功能 =====================
+document.getElementById("searchInput").addEventListener("input", () => {
+  const keyword = document.getElementById("searchInput").value.toLowerCase().trim();
+  if (!keyword) {
+    renderGood();
+    return;
+  }
+  const filteredGoods = goods.filter(item => item.name.toLowerCase().includes(keyword) || item.info?.toLowerCase().includes(keyword));
+  const goodList = document.getElementById('goodList');
+  if (filteredGoods.length === 0) {
+    goodList.innerHTML = '<div style="padding:20px;text-align:center;color:var(--color-tip)">未找到匹配的商品</div>';
+    return;
+  }
+  goodList.innerHTML = filteredGoods.map(item => `
+    <div class="item" onclick="openEditGood(${item.id})">
+      ${renderItemImage(item.name, item.info)}
+      <div class="item-content">
+        <div class="name">${item.name}</div>
+        <div class="tip">价格：${item.price}</div>
+        ${item.info ? `<div class="tip-detail">备注：${item.info}</div>` : ''}
+      </div>
+    </div>
+  `).join("");
+});
+
+// ===================== 初始化 =====================
+function initAdmin() {
+  document.getElementById('authBtn').onclick = doAuth;
+  refresh();
+  showToast("管理后台初始化完成");
+}
+window.onload = initAdmin;
+</script>

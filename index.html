@@ -1,1347 +1,149 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>系统面板</title>
+<title>导航主页</title>
+<link rel="stylesheet" href="shared.css">
 <style>
-  /* ===================== 基础样式结构重构 ===================== */
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{
-    font-family:微软雅黑;
-    transition: all 0.3s ease;
-    margin:0;
-    padding:0;
-    /* 关键：确保body继承根节点的变量 */
-    background: var(--bg-main);
+  .nav-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    padding: 20px 16px;
+  }
+  .nav-card {
+    background: var(--bg-item);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    transition: transform 0.2s;
+    text-decoration: none;
     color: var(--color-text);
-  }
-  
-  /* 暗色模式基础样式 - 直接定义在根节点 */
-  :root {
-    --bg-main: #121212;
-    --bg-top: #1a1a1a;
-    --bg-collapse-header: #252525;
-    --bg-item: #1c1c1c;
-    --bg-search: #222;
-    --bg-pop: #222;
-    --bg-input: #333;
-    --bg-toast: #2a2a2a;
-    --bg-custom-text: #1e1e1e;
-    --color-text: #e0e0e0;
-    --color-tip: #999;
-    --color-ver: #888;
-    --color-custom-text: #ddd;
-    --color-collapse-header: #ffffff;
-    --btn-auth-normal: #333;
-    --btn-auth-active: #00b866;
-    --btn-add: #0088cc;
-    --btn-save: #0088cc;
-    --btn-del: #cc3333;
-    --btn-donate: #b85a00;
-    --btn-time: #666666;
-    --btn-cancel: #666666;
-  }
-  
-  /* 亮色模式基础样式 - 基于body类名覆盖根节点变量 */
-  body.light-mode {
-    --bg-main: #f5f5f5;
-    --bg-top: #ffffff;
-    --bg-collapse-header: #e0e0e0;
-    --bg-item: #ffffff;
-    --bg-search: #ffffff;
-    --bg-pop: #ffffff;
-    --bg-input: #f0f0f0;
-    --bg-toast: #ffffff;
-    --bg-custom-text: #f8f8f8;
-    --color-text: #333333;
-    --color-tip: #666666;
-    --color-ver: #777777;
-    --color-custom-text: #333;
-    --color-collapse-header: #333333;
-    --btn-auth-normal: #e0e0e0;
-    --btn-auth-active: #00b866;
-    --btn-add: #0088cc;
-    --btn-save: #0088cc;
-    --btn-del: #cc3333;
-    --btn-donate: #b85a00;
-    --btn-time: #e0e0e0;
-    --btn-cancel: #e0e0e0;
-  }
-
-  /* 通用样式 - 确保所有元素都显式使用变量 */
-  .top{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    padding:12px 16px;
-    background:var(--bg-top)!important; /* 强制优先级 */
-  }
-  .auth-btn{
-    padding:9px 14px;
-    background:var(--btn-auth-normal)!important;
-    color:var(--color-text)!important;
-    border:0;
-    border-radius:8px;
-    cursor:pointer;
-  }
-  .auth-on{
-    background:var(--btn-auth-active)!important;
-  }
-  .right-bar{
-    display:flex;
-    gap:10px;
-    align-items:center;
-  }
-  .donate-btn{
-    padding:9px 14px;
-    background:var(--btn-donate)!important;
-    color:var(--color-text)!important;
-    border:0;
-    border-radius:8px;
-    cursor:pointer;
-  }
-  .ver{
-    color:var(--color-ver)!important;
-    font-size:12px;
-  }
-  /* 设置/模式按钮样式 */
-  .setting-btn, .mode-btn{
-    padding:9px 14px;
-    background:var(--btn-auth-normal)!important;
-    color:var(--color-text)!important;
-    border:0;
-    border-radius:8px;
-    cursor:pointer;
-    font-size:12px;
-  }
-  
-  /* 自定义欢迎文本区 */
-  .custom-welcome{
-    margin:10px 16px;
-    padding:12px 16px;
-    background:var(--bg-custom-text)!important;
-    border-radius:8px;
-    color:var(--color-custom-text)!important;
-    font-size:14px;
-  }
-  
-  /* 搜索框 */
-  .search{
-    width:100%;
-    padding:12px 16px;
-    background:var(--bg-search)!important;
-    color:var(--color-text)!important;
-    border:0;
-    font-size:14px;
-  }
-  
-  /* 折叠面板 */
-  .collapse-section{
-    margin:10px 16px;
-    border-radius:8px;
-    overflow:hidden;
-  }
-  .collapse-header{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    padding:12px 16px;
-    background:var(--bg-collapse-header)!important;
-    color:var(--color-collapse-header)!important;
-    cursor:pointer;
-  }
-  .collapse-header h3{
-    font-size:14px;
-    margin:0;
-    font-weight:600;
-  }
-  .collapse-custom-text{
-    font-size:12px;
-    color:var(--color-tip)!important;
-    margin-left:10px;
-  }
-  .collapse-toggle{
-    width:24px;
-    height:24px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    color:var(--color-text)!important;
-    font-size:16px;
-  }
-  .collapse-body{
-    padding:10px;
-    display:block;
-  }
-  
-  /* 按钮 */
-  .add-btn{
-    width:34px;
-    height:34px;
-    border-radius:8px;
-    background:var(--btn-add)!important;
-    color:var(--color-text)!important;
-    border:0;
-    font-size:18px;
-    cursor:pointer;
-  }
-  .time-btn { 
-    padding:4px 6px;
-    background:var(--btn-time)!important;
-    color:var(--color-text)!important;
-    border:0;
-    border-radius:8px;
-    cursor:pointer;
-    font-size:11px;
-    margin:6px 0 0 0;
-    white-space:nowrap;
-    flex-shrink:0;
-    width:auto;
-    min-width:60px;
-  }
-  
-  /* 列表容器 - 响应式网格布局 */
-  .list-container{
-    display:grid;
-    grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));
-    gap:12px;
-    width:100%;
-  }
-  
-  /* 列表项（含图片） */
-  .item{
-    background:var(--bg-item)!important;
-    padding:12px;
-    border-radius:8px;
-    display:flex;
-    align-items:center;
-    gap:12px;
-    height:100%;
-  }
-  .item-img{
-    width:64px;
-    height:64px;
-    border-radius:8px;
-    object-fit:cover;
-    flex-shrink:0;
-  }
-  .item-content{
-    flex:1;
-    display:flex;
-    flex-direction:column;
-    gap:4px;
-  }
-  .item .name{
-    font-weight:bold;
-    font-size:14px;
-    color:var(--color-text)!important;
-  }
-  .item .tip{
-    font-size:12px;
-    color:var(--color-tip)!important;
-    line-height:1.4;
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-  }
-  .item .tip-detail{
-    font-size:11px;
-    color:var(--color-tip)!important;
-    opacity:0.9;
-    line-height:1.3;
-  }
-  
-  /* 弹窗样式优化 */
-  .mask{
-    position:fixed;
-    inset:0;
-    background:rgba(0,0,0,0.8);
-    display:none;
-    align-items:center;
-    justify-content:center;
-    overflow-y:auto;
-    padding:20px 0;
-    z-index:1000;
-  }
-  .pop{
-    background:var(--bg-pop)!important;
-    width:90%;
-    max-width:600px;
-    max-height:80vh;
-    padding:20px;
-    border-radius:12px;
-    position:relative;
-    overflow-y:auto;
-  }
-  /* 弹窗关闭按钮 */
-  .pop-close{
-    position:absolute;
-    top:12px;
-    right:12px;
-    width:24px;
-    height:24px;
-    border:none;
-    background:none;
-    color:var(--color-text)!important;
-    font-size:18px;
-    cursor:pointer;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    padding:0;
-    z-index:10;
-  }
-  .pop-close:hover{
-    color:#fff!important;
-  }
-  /* 弹窗标题样式 */
-  .pop-title{
-    margin:0 0 20px 0;
-    font-size:18px;
-    font-weight:600;
-    display:flex;
-    align-items:center;
-    gap:8px;
-    color:var(--color-text)!important;
-  }
-  .theme-badge{
-    padding:4px 8px;
-    border-radius:4px;
-    font-size:12px;
-    font-weight:normal;
-  }
-  .theme-badge.dark{
-    background:#121212!important;
-    color:#e0e0e0!important;
-    border:1px solid #333;
-  }
-  .theme-badge.light{
-    background:#f5f5f5!important;
-    color:#333!important;
-    border:1px solid #ddd;
-  }
-  
-  /* 改动提示样式 */
-  .changes-indicator {
-    margin: 10px 0 20px 0;
-    padding: 10px;
-    border-radius: 8px;
-    background: rgba(255, 165, 0, 0.1)!important;
-    border: 1px solid #ffa500;
-    color: var(--color-text)!important;
-    display: none;
-  }
-  .changes-indicator.visible {
     display: block;
   }
-  .modified-tag {
+  .nav-card:hover {
+    transform: translateY(-5px);
+    background: var(--bg-collapse-header);
+  }
+  .nav-card h3 {
+    margin-bottom: 10px;
+  }
+  .nav-card p {
+    font-size: 14px;
+    color: var(--color-tip);
+  }
+  .external-links {
+    margin: 20px 16px;
+    padding: 15px;
+    background: var(--bg-custom-text);
+    border-radius: 12px;
+    text-align: center;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+  }
+  .external-links a {
     display: inline-block;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 10px;
-    background: #ffa500!important;
-    color: white!important;
-    margin-left: 8px;
+    padding: 8px 16px;
+    background: var(--btn-add);
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
   }
-  
-  /* 弹窗输入框样式 */
-  .pop input:not(.color-picker){
-    padding:10px;
-    background:var(--bg-input)!important;
-    color:var(--color-text)!important;
-    border:0;
-    border-radius:8px;
-    margin-bottom:12px;
-    width:100%;
+  .section-title {
+    margin: 20px 16px 0;
+    font-size: 18px;
+    font-weight: bold;
+    border-left: 4px solid var(--btn-add);
+    padding-left: 12px;
   }
-  
-  /* 设置面板样式优化 */
-  .color-picker-grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));
-    gap:15px;
-    margin-bottom:20px;
-  }
-  /* 颜色选择器项 */
-  .color-picker-item{
-    display:flex;
-    flex-direction:column;
-    gap:8px;
-  }
-  .color-picker-item label{
-    font-size:14px;
-    color:var(--color-text)!important;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-  }
-  /* 显示当前颜色的十六进制值 */
-  .color-code{
-    font-size:12px;
-    color:var(--color-tip)!important;
-    font-family:monospace;
-  }
-  /* 颜色选择器容器 */
-  .color-picker-wrapper{
-    width:100%;
-    height:50px;
-    border-radius:8px;
-    overflow:hidden;
-    border:1px solid rgba(255,255,255,0.1);
-    position:relative;
-    cursor:pointer;
-  }
-  /* 颜色预览块 */
-  .color-preview{
-    width:100%;
-    height:100%;
-    position:absolute;
-    top:0;
-    left:0;
-    z-index:1;
-    border-radius:8px;
-    transition: background-color 0.2s ease;
-  }
-  /* 优化颜色选择器样式 */
-  .color-picker{
-    width:100%;
-    height:100%;
-    opacity:0;
-    position:absolute;
-    top:0;
-    left:0;
-    z-index:2;
-    cursor:pointer;
-  }
-  
-  .pop .input-group {
-    display:block;
-    width:100%;
-    margin-bottom:12px;
-  }
-  .pop .input-group input{
-    margin-bottom:0;
-  }
-  /* 弹窗按钮样式 */
-  .pop button{
-    padding:12px;
-    border:0;
-    border-radius:8px;
-    margin-top:8px;
-    cursor:pointer;
-    font-size:14px;
-    width:100%;
-    transition: all 0.2s ease;
-  }
-  .btn-save{
-    background:var(--btn-save)!important;
-    color:white!important;
-    cursor: pointer;
-    opacity: 1;
-  }
-  .btn-save:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-  .btn-del{
-    background:var(--btn-del)!important;
-    color:white!important;
-  }
-  .btn-cancel{
-    background:var(--btn-cancel)!important;
-    color:var(--color-text)!important;
-  }
-  .btn-reset{
-    background:#888888!important;
-    color:white!important;
-  }
-  
-  /* 提示框 */
-  .toast{
-    position:fixed;
-    left:50%;
-    bottom:24px;
-    transform:translateX(-50%);
-    background:var(--bg-toast)!important;
-    color:var(--color-text)!important;
-    padding:10px 20px;
-    border-radius:8px;
-    display:none;
-    z-index:1001;
-    box-shadow:0 2px 10px rgba(0,0,0,0.2);
+  .loading {
+    text-align: center;
+    padding: 20px;
+    color: var(--color-tip);
   }
 </style>
 
 <div class="top">
-  <button class="auth-btn" id="authBtn">游客模式</button>
+  <div class="visitor">chop导航主页</div>
   <div class="right-bar">
     <button class="mode-btn" id="modeToggle">切换亮色模式</button>
-    <button class="setting-btn" id="settingBtn">设置</button>
-    <div class="ver">v1.10.1完整版</div>
+    <div class="ver">门户 v1.0</div>
     <button class="donate-btn" onclick="openDonate()">捐赠</button>
   </div>
 </div>
 
 <div class="custom-welcome">
-  欢迎来到chop！这里可以查看各种商品价格以及黑名单
+  欢迎访问chop工具站(此非巧克力官方网站)！请选择你要进入的页面：
 </div>
 
-<input class="search" id="searchInput" placeholder="搜索商品">
-
-<!-- 商品折叠面板 -->
-<div class="collapse-section">
-  <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:var(--bg-collapse-header);">
-  <div class="collapse-header" onclick="toggleCollapse('goodCollapse')" style="flex:1;">
-    <div style="display:flex;align-items:center">
-      <h3>商品列表</h3>
-      <span class="collapse-custom-text">点击此条目可折叠/展开</span>
-    </div>
-    <div class="collapse-toggle" id="goodToggle">^</div>
-  </div>
-  <button class="add-btn" onclick="openAddGood();event.stopPropagation()">+</button>
-</div>
-  <div class="collapse-body" id="goodCollapse">
-    <div id="goodList" class="list-container"></div>
-  </div>
+<!-- 固定入口卡片 -->
+<div class="nav-grid">
+  <a href="chop.html" class="nav-card">
+    <h3>⚙️ chop</h3>
+    <p>商品管理、封禁管理、系统设置</p>
+  </a>
+  <a href="https://space.bilibili.com/3493137687251407" class="nav-card" target="_blank">
+    <h3>👤 作者主页</h3>
+    <p>个人主页</p>
+  </a>
 </div>
 
-<!-- 封禁名单折叠面板 -->
-<div class="collapse-section">
-  <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:var(--bg-collapse-header);">
-  <div class="collapse-header" onclick="toggleCollapse('badCollapse')" style="flex:1;">
-    <div style="display:flex;align-items:center">
-      <h3>封禁名单(黑名单)</h3>
-      <span class="collapse-custom-text">点击此条目可折叠/展开</span>
-    </div>
-    <div class="collapse-toggle" id="badToggle">^</div>
-  </div>
-  <button class="add-btn" onclick="openAddBad();event.stopPropagation()">+</button>
-</div>
-  <div class="collapse-body" id="badCollapse">
-    <div id="badList" class="list-container"></div>
-  </div>
+<!-- 动态代理列表区域 -->
+<div class="section-title">📦 代理价目表</div>
+<div id="proxyList" class="nav-grid">
+  <div class="loading">加载中...</div>
 </div>
 
-<div class="mask" id="mask"><div class="pop" id="pop"></div></div>
-<div class="toast" id="toast"></div>
+<div class="external-links">
+  <span>外部链接：</span>
+  <a href="https://ifdian.net/a/StarRingEngr" target="_blank">作者爱发电</a>
+  <a href="https://github.com/StarRingEngr/chop" target="_blank">此项目GitHub</a>
+  <a href="https://starringengr.github.io/slimefunAsstOL/" target="_blank">sf在线计算器</a>
+  <a href="http://srte.work.gd:32685/" target="_blank">巧克力服非官方在线地图</a>
+  <a href="https://mc.zgwl.eu.org" target="_blank">巧克力服官网</a>
+</div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="shared.js"></script>
 <script>
-// ===================== 基础配置 =====================
-const SUPABASE_URL = "https://gxcfblgizxooslbgvmoj.supabase.co";
-const READ_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd4Y2ZibGdpenhvb3NsYmd2bW9qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MTU4OTAsImV4cCI6MjA4ODI5MTg5MH0.BaTek6i25igE9C0xwgC9KI1Cgc2GUFlMOzSZ1tFHOZQ";
-const CIPHER = "2cab452a86cc1a46ee9300dc33401135ca30e5749cef346a36b26cac0d96b4bd1f91457bcaee0065d19979d80f75314efe3df445bdd80b192fab76d337b4aaaf2588660bd2c2144b95a378cf0f581f60f43cc26fa3e3551126a848fe769f93dc389b66358de81416d2a019dc50733542f13b9e33bccd251525a87dcb2db2aea07a9c750bd7c62d7a95b51ed415733552b03aef4ee3cc0c1e61be61d371b090827c9f4772cac9187bc4917cfc540f3163c160ef37adf6011c6cba6cab079aa7d70e87492ea9c4037cfbcb3ed32e750255";
-
-// ===================== 颜色配置核心（双表独立存储） =====================
-// 默认颜色配置表（两个独立的默认表）
-const DEFAULT_COLORS = {
-  dark: {
-    '--bg-main': '#121212',
-    '--bg-top': '#1a1a1a',
-    '--bg-collapse-header': '#252525',
-    '--bg-item': '#1c1c1c',
-    '--bg-search': '#222222',
-    '--bg-pop': '#222222',
-    '--bg-input': '#333333',
-    '--color-text': '#e0e0e0',
-    '--color-tip': '#999999',
-    '--btn-add': '#0088cc',
-    '--btn-save': '#0088cc',
-    '--btn-del': '#cc3333'
-  },
-  light: {
-    '--bg-main': '#f5f5f5',
-    '--bg-top': '#ffffff',
-    '--bg-collapse-header': '#e0e0e0',
-    '--bg-item': '#ffffff',
-    '--bg-search': '#ffffff',
-    '--bg-pop': '#ffffff',
-    '--bg-input': '#f0f0f0',
-    '--color-text': '#333333',
-    '--color-tip': '#666666',
-    '--btn-add': '#0088cc',
-    '--btn-save': '#0088cc',
-    '--btn-del': '#cc3333'
+  function openDonate() {
+    if (confirm("确定前往爱发电支持作者吗？")) window.open("https://ifdian.net/a/StarRingEngr","_blank");
   }
-};
 
-// 可配置的颜色变量列表
-const COLOR_ITEMS = [
-  { key: '--bg-main', name: '页面背景色' },
-  { key: '--bg-top', name: '顶部栏背景色' },
-  { key: '--bg-collapse-header', name: '面板标题背景' },
-  { key: '--bg-item', name: '列表项背景色' },
-  { key: '--bg-search', name: '搜索框背景色' },
-  { key: '--bg-pop', name: '弹窗背景色' },
-  { key: '--bg-input', name: '输入框背景色' },
-  { key: '--color-text', name: '主文本颜色' },
-  { key: '--color-tip', name: '提示文本颜色' },
-  { key: '--btn-add', name: '添加按钮颜色' },
-  { key: '--btn-save', name: '保存按钮颜色' },
-  { key: '--btn-del', name: '删除按钮颜色' }
-];
-
-// 全局状态
-let currentTheme = 'dark'; // 当前激活的主题
-let customColors = { // 自定义颜色配置（双表独立）
-  dark: JSON.parse(localStorage.getItem('customColors_dark') || '{}'),
-  light: JSON.parse(localStorage.getItem('customColors_light') || '{}')
-};
-let modifiedColors = new Set(); // 记录被修改的颜色变量
-let isAdmin = false;
-let goods = [], bans = [];
-let client = supabase.createClient(SUPABASE_URL, READ_KEY);
-
-// ===================== 工具函数 =====================
-function showToast(msg) {
-  const toast = document.getElementById("toast");
-  toast.textContent = msg;
-  toast.style.display = "block";
-  setTimeout(() => toast.style.display = "none", 2000);
-}
-
-function showPop(html) {
-  document.getElementById("pop").innerHTML = html;
-  document.getElementById("mask").style.display = "flex";
-}
-
-function hidePop() {
-  document.getElementById("mask").style.display = "none";
-  // 重置修改记录
-  modifiedColors.clear();
-}
-
-function toggleCollapse(id) {
-  const body = document.getElementById(id);
-  const toggle = document.getElementById(id.replace('Collapse', 'Toggle'));
-  if (body.style.display === 'none') {
-    body.style.display = 'block';
-    toggle.textContent = '^';
-  } else {
-    body.style.display = 'none';
-    toggle.textContent = 'v';
-  }
-}
-
-function renderItemImage(itemName, info) {
-  // 严格判断：info存在 + 非空 + 非纯空格，才用info；否则用itemName
-  const imgName = (info && info.trim()) ? info.trim() : itemName;
-  return `<img src="./images/${imgName}.png" class="item-img" onerror="this.style.display='none'">`;
-}
-
-function getCurrentTime() {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
-}
-
-function fillCurrentTime(inputId) {
-  document.getElementById(inputId).value = getCurrentTime();
-}
-
-// ===================== 改动检测函数 =====================
-/**
- * 更新改动状态显示
- */
-function updateChangesStatus() {
-  const saveButton = document.querySelector('.btn-save');
-  const changesIndicator = document.querySelector('.changes-indicator');
-  
-  // 启用/禁用保存按钮
-  if (saveButton) {
-    saveButton.disabled = modifiedColors.size === 0;
-  }
-  
-  // 显示/隐藏改动提示
-  if (changesIndicator) {
-    if (modifiedColors.size > 0) {
-      changesIndicator.classList.add('visible');
-      changesIndicator.innerHTML = `⚠️ 检测到 ${modifiedColors.size} 项颜色修改，点击保存以应用更改。`;
-      
-      // 为修改过的颜色添加标记
-      modifiedColors.forEach(key => {
-        const item = document.querySelector(`.color-picker-item[data-key="${key}"]`);
-        if (item) {
-          const label = item.querySelector('label');
-          const existingTag = label.querySelector('.modified-tag');
-          if (!existingTag) {
-            const tag = document.createElement('span');
-            tag.className = 'modified-tag';
-            tag.textContent = '已修改';
-            label.appendChild(tag);
-          }
-        }
-      });
-    } else {
-      changesIndicator.classList.remove('visible');
-      
-      // 移除所有修改标记
-      document.querySelectorAll('.modified-tag').forEach(tag => tag.remove());
-    }
-  }
-}
-
-/**
- * 检查颜色是否被修改
- * @param {string} key 颜色变量名
- * @param {string} newValue 新颜色值
- * @returns {boolean} 是否修改
- */
-function isColorModified(key, newValue) {
-  const originalValue = getCurrentColorValue(key);
-  // 统一格式后比较
-  const normalizeColor = (color) => {
-    if (!color) return '';
-    return color.toLowerCase().replace(/^#/, '').replace(/([0-9a-f])([0-9a-f])([0-9a-f])$/, '$1$1$2$2$3$3');
-  };
-  
-  return normalizeColor(newValue) !== normalizeColor(originalValue);
-}
-
-// ===================== 主题和颜色管理核心函数 =====================
-/**
- * 获取当前主题下某个变量的实际生效值
- * @param {string} varKey 变量名
- * @returns {string} 十六进制颜色值
- */
-function getCurrentColorValue(varKey) {
-  // 优先使用自定义配置，没有则使用默认配置
-  return customColors[currentTheme][varKey] || DEFAULT_COLORS[currentTheme][varKey];
-}
-
-/**
- * 强制更新所有元素样式（核心修复）
- */
-function forceUpdateAllStyles() {
-  // 1. 合并默认配置和自定义配置
-  const finalColors = {
-    ...DEFAULT_COLORS[currentTheme],
-    ...customColors[currentTheme]
-  };
-  
-  // 2. 先清除所有根节点的CSS变量
-  Object.keys(finalColors).forEach(key => {
-    document.documentElement.style.removeProperty(key);
-  });
-  
-  // 3. 重新设置所有变量到根节点
-  Object.keys(finalColors).forEach(key => {
-    document.documentElement.style.setProperty(key, finalColors[key]);
-  });
-  
-  // 4. 强制页面重绘（解决浏览器渲染缓存问题）
-  document.body.style.display = 'none';
-  document.body.offsetHeight; // 触发重绘
-  document.body.style.display = '';
-  
-  // 5. 手动更新关键按钮的样式（兜底方案）
-  updateCriticalElementsStyle();
-}
-
-/**
- * 手动更新关键元素样式（兜底）
- */
-function updateCriticalElementsStyle() {
-  const finalColors = {
-    ...DEFAULT_COLORS[currentTheme],
-    ...customColors[currentTheme]
-  };
-  
-  // 更新添加按钮
-  document.querySelectorAll('.add-btn').forEach(btn => {
-    btn.style.backgroundColor = finalColors['--btn-add'];
-  });
-  
-  // 更新保存按钮
-  document.querySelectorAll('.btn-save').forEach(btn => {
-    btn.style.backgroundColor = finalColors['--btn-save'];
-  });
-  
-  // 更新删除按钮
-  document.querySelectorAll('.btn-del').forEach(btn => {
-    btn.style.backgroundColor = finalColors['--btn-del'];
-  });
-  
-  // 更新顶部栏背景
-  document.querySelectorAll('.top').forEach(el => {
-    el.style.backgroundColor = finalColors['--bg-top'];
-  });
-  
-  // 更新列表项背景
-  document.querySelectorAll('.item').forEach(el => {
-    el.style.backgroundColor = finalColors['--bg-item'];
-  });
-}
-
-/**
- * 应用当前主题的所有样式
- */
-function applyCurrentThemeStyles() {
-  forceUpdateAllStyles();
-  
-  // 更新主题切换按钮文本
-  document.getElementById('modeToggle').textContent = 
-    currentTheme === 'dark' ? '切换亮色模式' : '切换暗色模式';
-}
-
-/**
- * 切换主题
- */
-function toggleTheme() {
-  // 切换主题
-  currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
-  
-  // 更新body类名
-  if (currentTheme === 'light') {
-    document.body.classList.add('light-mode');
-  } else {
-    document.body.classList.remove('light-mode');
-  }
-  
-  // 应用新主题的样式
-  applyCurrentThemeStyles();
-  
-  // 保存当前主题到本地存储
-  localStorage.setItem('currentTheme', currentTheme);
-  
-  showToast(`已切换为${currentTheme === 'dark' ? '暗色' : '亮色'}模式`);
-}
-
-/**
- * 初始化主题
- */
-function initTheme() {
-  // 从本地存储读取上次的主题
-  const savedTheme = localStorage.getItem('currentTheme');
-  if (savedTheme) {
-    currentTheme = savedTheme;
-  }
-  
-  // 设置body类名
-  if (currentTheme === 'light') {
-    document.body.classList.add('light-mode');
-  }
-  
-  // 应用主题样式
-  applyCurrentThemeStyles();
-}
-
-/**
- * 打开颜色设置面板（自动匹配当前主题）
- */
-function openColorSettingsPanel() {
-  // 重置修改记录
-  modifiedColors.clear();
-  
-  // 面板标题（显示当前编辑的主题）
-  const themeTitle = currentTheme === 'dark' ? '暗色模式' : '亮色模式';
-  const themeBadgeClass = currentTheme === 'dark' ? 'dark' : 'light';
-  
-  // 构建颜色选择器（全部使用当前主题的实际颜色值）
-  let colorPickerHtml = '';
-  COLOR_ITEMS.forEach(item => {
-    // 获取当前主题下这个变量的实际值
-    const colorValue = getCurrentColorValue(item.key);
-    // 确保是标准的十六进制格式
-    let hexValue = colorValue;
-    if (hexValue.startsWith('#')) {
-      hexValue = hexValue.slice(1);
-    }
-    // 补全6位
-    if (hexValue.length === 3) {
-      hexValue = hexValue.split('').map(c => c + c).join('');
-    }
-    
-    colorPickerHtml += `
-      <div class="color-picker-item" data-key="${item.key}">
-        <label>
-          <span>${item.name}</span>
-          <span class="color-code">#${hexValue}</span>
-        </label>
-        <div class="color-picker-wrapper">
-          <div class="color-preview" style="background-color: #${hexValue}"></div>
-          <input type="color" class="color-picker" 
-                 data-key="${item.key}" 
-                 value="#${hexValue}"
-                 data-original="#${hexValue}">
-        </div>
-      </div>
-    `;
-  });
-  
-  // 完整的设置面板HTML
-  const panelHtml = `
-    <button class="pop-close" onclick="hidePop()">×</button>
-    <h3 class="pop-title">
-      自定义颜色设置
-      <span class="theme-badge ${themeBadgeClass}">${themeTitle}</span>
-    </h3>
-    <div class="changes-indicator">
-      ⚠️ 检测到颜色修改，点击保存以应用更改。
-    </div>
-    <div class="color-picker-grid">
-      ${colorPickerHtml}
-    </div>
-    <button class="btn-save" onclick="saveColorSettings()" disabled>保存配置</button>
-    <button class="btn-reset" onclick="resetColorSettings()">重置为默认</button>
-    <button class="btn-cancel" onclick="hidePop()">取消</button>
-  `;
-  
-  showPop(panelHtml);
-  
-  // 初始化改动状态
-  updateChangesStatus();
-  
-  // 绑定颜色选择事件
-  document.querySelectorAll('.color-picker').forEach(picker => {
-    // 实时预览（input事件 - 拖动时实时更新）
-    picker.addEventListener('input', function() {
-      const key = this.getAttribute('data-key');
-      const newValue = this.value;
-      
-      // 更新预览块
-      const wrapper = this.closest('.color-picker-wrapper');
-      const preview = wrapper.querySelector('.color-preview');
-      preview.style.backgroundColor = newValue;
-      
-      // 更新颜色代码显示
-      const item = this.closest('.color-picker-item');
-      const code = item.querySelector('.color-code');
-      code.textContent = newValue;
-      
-      // 实时应用到页面
-      document.documentElement.style.setProperty(key, newValue);
-      
-      // 手动更新对应元素（实时看到效果）
-      if (key === '--btn-add') {
-        document.querySelectorAll('.add-btn').forEach(btn => {
-          btn.style.backgroundColor = newValue;
-        });
-      } else if (key === '--btn-save') {
-        document.querySelectorAll('.btn-save').forEach(btn => {
-          btn.style.backgroundColor = newValue;
-        });
-      } else if (key === '--btn-del') {
-        document.querySelectorAll('.btn-del').forEach(btn => {
-          btn.style.backgroundColor = newValue;
-        });
+  // 加载 JSONL 代理列表
+  async function loadProxyList() {
+    const container = document.getElementById('proxyList');
+    try {
+      const response = await fetch('proxy-list.jsonl');
+      if (!response.ok) throw new Error('代理列表加载失败');
+      const text = await response.text();
+      const lines = text.split('\n').filter(line => line.trim() !== '');
+      if (lines.length === 0) {
+        container.innerHTML = '<div class="loading">暂无代理价目表</div>';
+        return;
       }
-      
-      // 检测是否真的修改了颜色
-      if (isColorModified(key, newValue)) {
-        modifiedColors.add(key);
-      } else {
-        modifiedColors.delete(key);
-      }
-      
-      // 更新改动状态
-      updateChangesStatus();
-    });
-    
-    // 确认选择（change事件）
-    picker.addEventListener('change', function() {
-      const key = this.getAttribute('data-key');
-      const newValue = this.value;
-      
-      // 保存到临时自定义配置
-      customColors[currentTheme][key] = newValue;
-    });
-  });
-}
-
-/**
- * 保存当前主题的颜色配置（核心修复）
- */
-function saveColorSettings() {
-  // 检查是否有修改
-  if (modifiedColors.size === 0) {
-    showToast("没有检测到任何颜色修改");
-    return;
-  }
-  
-  try {
-    // 收集所有颜色选择器的最终值
-    document.querySelectorAll('.color-picker').forEach(picker => {
-      const key = picker.getAttribute('data-key');
-      const finalValue = picker.value;
-      customColors[currentTheme][key] = finalValue;
-    });
-    
-    // 保存到本地存储
-    localStorage.setItem(`customColors_${currentTheme}`, JSON.stringify(customColors[currentTheme]));
-    
-    // ========== 核心修复：强制更新所有样式 ==========
-    forceUpdateAllStyles();
-    
-    // 显示成功提示
-    showToast(`${currentTheme === 'dark' ? '暗色' : '亮色'}模式颜色配置已保存并生效（共${modifiedColors.size}项修改）`);
-    
-    // 重置修改记录
-    modifiedColors.clear();
-    
-    // 关闭弹窗
-    hidePop();
-    
-  } catch (error) {
-    console.error('保存颜色配置失败:', error);
-    showToast("保存失败：" + error.message);
-  }
-}
-
-/**
- * 重置当前主题的颜色配置为默认值
- */
-function resetColorSettings() {
-  if (!confirm(`确定要重置${currentTheme === 'dark' ? '暗色' : '亮色'}模式的颜色配置为默认值吗？`)) {
-    return;
-  }
-  
-  // 清空当前主题的自定义配置
-  customColors[currentTheme] = {};
-  localStorage.removeItem(`customColors_${currentTheme}`);
-  
-  // 重置修改记录
-  modifiedColors.clear();
-  
-  // 强制更新样式到默认值
-  forceUpdateAllStyles();
-  
-  // 重新打开设置面板显示默认值
-  openColorSettingsPanel();
-  
-  showToast(`${currentTheme === 'dark' ? '暗色' : '亮色'}模式颜色配置已重置为默认`);
-}
-
-// ===================== 认证和数据相关函数 =====================
-async function xorDecrypt(hexStr, key) {
-  try {
-    const enc = new TextEncoder();
-    const keyData = enc.encode(key);
-    const hashBuffer = await crypto.subtle.digest("SHA-256", keyData);
-    const hashBytes = new Uint8Array(hashBuffer);
-    const dataBytes = new Uint8Array(hexStr.match(/.{1,2}/g).map(b => parseInt(b,16)));
-    const res = new Uint8Array(dataBytes.length);
-    
-    for(let i=0; i<dataBytes.length; i++) {
-      res[i] = dataBytes[i] ^ hashBytes[i % hashBytes.length];
+      const proxies = lines.map(line => JSON.parse(line));
+      container.innerHTML = proxies.map(proxy => `
+        <a href="proxies/${encodeURIComponent(proxy.file)}" class="nav-card">
+          <h3>📄 ${escapeHtml(proxy.name)}</h3>
+          <p>${escapeHtml(proxy.description || '')}</p>
+          <p style="font-size: 12px; margin-top: 8px;">版本：${escapeHtml(proxy.version || '')}</p>
+        </a>
+      `).join('');
+    } catch (error) {
+      console.error(error);
+      container.innerHTML = '<div class="loading">代理列表加载失败，请检查 proxy-list.jsonl 文件是否存在。</div>';
     }
-    
-    return new TextDecoder().decode(res);
-  } catch (e) {
-    console.error('解密失败:', e);
-    throw e;
-  }
-}
-
-async function doAuth() {
-  if (isAdmin) {
-    isAdmin = false;
-    client = supabase.createClient(SUPABASE_URL, READ_KEY);
-    document.getElementById("authBtn").textContent = "游客模式";
-    document.getElementById("authBtn").classList.remove("auth-on");
-    showToast("已退出登录，恢复游客只读模式");
-    refresh();
-    return;
   }
 
-  const password = prompt("输入管理员密码\n密码错误只需退出登录即可解决！");
-  if (!password) return;
-  
-  showToast("验证中...");
-  
-  try {
-    const adminKey = await xorDecrypt(CIPHER, password);
-    client = supabase.createClient(SUPABASE_URL, adminKey);
-    isAdmin = true;
-    document.getElementById("authBtn").textContent = "退出登录";
-    document.getElementById("authBtn").classList.add("auth-on");
-    showToast("密码正确，已获得管理员权限");
-    refresh();
-  } catch (e) {
-    showToast("密码错误！请重试");
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+      if (m === '&') return '&amp;';
+      if (m === '<') return '&lt;';
+      if (m === '>') return '&gt;';
+      return m;
+    });
   }
-}
 
-async function refresh() {
-  try {
-    const { data: iv } = await client.from("iv").select("*");
-    const { data: bad } = await client.from("badlist").select("*");
-    goods = iv || [];
-    bans = bad || [];
-    renderGood();
-    renderBad();
-  } catch (e) {
-    console.error('数据加载失败:', e);
-    showToast("数据加载失败，请重试");
-  }
-}
-
-function renderGood() {
-  const goodList = document.getElementById('goodList');
-  if (goods.length === 0) {
-    goodList.innerHTML = '<div style="padding:20px;text-align:center;color:var(--color-tip)">暂无商品数据</div>';
-    return;
-  }
-  
-  goodList.innerHTML = goods.map(item => `
-    <div class="item" onclick="openEditGood(${item.id})">
-      ${renderItemImage(item.name, item.info)}
-      <div class="item-content">
-        <div class="name">${item.name}</div>
-        <div class="tip">价格：${item.price}</div>
-        ${item.info ? `<div class="tip-detail">备注：${item.info}</div>` : ''}
-      </div>
-    </div>
-  `).join("");
-}
-
-function renderBad() {
-  const badList = document.getElementById('badList');
-  if (bans.length === 0) {
-    badList.innerHTML = '<div style="padding:20px;text-align:center;color:var(--color-tip)">暂无封禁记录</div>';
-    return;
-  }
-  
-  badList.innerHTML = bans.map(item => `
-    <div class="item" onclick="openEditBad(${item.id})">
-      ${renderItemImage(item.username)}
-      <div class="item-content">
-        <div class="name">${item.username}</div>
-        <div class="tip">原因：${item.reason}</div>
-        ${item.time ? `<div class="tip-detail">时间：${item.time}</div>` : ''}
-        ${item.operator ? `<div class="tip-detail">操作人：${item.operator}</div>` : ''}
-      </div>
-    </div>
-  `).join("");
-}
-
-// ===================== 商品和封禁管理函数 =====================
-function openEditGood(id) {
-  if (!isAdmin) return showToast("无管理员权限，请先验证密码");
-  
-  const item = goods.find(x => x.id === id);
-  if (!item) return showToast("商品不存在");
-  
-  showPop(`
-    <button class="pop-close" onclick="hidePop()">×</button>
-    <h3 class="pop-title">编辑商品</h3>
-    <input id="gn" value="${item.name}" placeholder="商品名称">
-    <input id="gp" value="${item.price}" placeholder="商品价格">
-    <input id="gi" value="${item.info || ''}" placeholder="商品备注">
-    <button class="btn-save" onclick="saveGood(${id})">保存</button>
-    <button class="btn-del" onclick="delGood(${id})">删除</button>
-    <button class="btn-cancel" onclick="hidePop()">取消</button>
-  `);
-}
-
-function openAddGood() {
-  if (!isAdmin) return showToast("无管理员权限，请先验证密码");
-  
-  showPop(`
-    <button class="pop-close" onclick="hidePop()">×</button>
-    <h3 class="pop-title">新增商品</h3>
-    <input id="gn" placeholder="商品名称">
-    <input id="gp" placeholder="商品价格">
-    <input id="gi" placeholder="商品备注">
-    <button class="btn-save" onclick="addGood()">添加</button>
-    <button class="btn-cancel" onclick="hidePop()">取消</button>
-  `);
-}
-
-async function addGood() {
-  const name = document.getElementById('gn').value.trim();
-  const price = document.getElementById('gp').value.trim();
-  const info = document.getElementById('gi').value.trim();
-  
-  if (!name) return showToast("商品名称不能为空");
-  
-  try {
-    await client.from("iv").insert([{ name, price, info }]);
-    hidePop();
-    refresh();
-    showToast("商品添加成功");
-  } catch (e) {
-    console.error('添加商品失败:', e);
-    showToast("添加商品失败，请重试");
-  }
-}
-
-async function saveGood(id) {
-  const name = document.getElementById('gn').value.trim();
-  const price = document.getElementById('gp').value.trim();
-  const info = document.getElementById('gi').value.trim();
-  
-  if (!name) return showToast("商品名称不能为空");
-  
-  try {
-    await client.from("iv").update({ name, price, info }).eq("id", id);
-    hidePop();
-    refresh();
-    showToast("商品保存成功");
-  } catch (e) {
-    console.error('保存商品失败:', e);
-    showToast("保存商品失败，请重试");
-  }
-}
-
-async function delGood(id) {
-  if (!confirm("确定删除该商品吗？")) return;
-  
-  try {
-    await client.from("iv").delete().eq("id", id);
-    hidePop();
-    refresh();
-    showToast("商品删除成功");
-  } catch (e) {
-    console.error('删除商品失败:', e);
-    showToast("删除商品失败，请重试");
-  }
-}
-
-function openEditBad(id) {
-  if (!isAdmin) return showToast("无管理员权限，请先验证密码");
-  
-  const item = bans.find(x => x.id === id);
-  if (!item) return showToast("封禁记录不存在");
-  
-  showPop(`
-    <button class="pop-close" onclick="hidePop()">×</button>
-    <h3 class="pop-title">编辑封禁</h3>
-    <input id="bu" value="${item.username}" placeholder="玩家名">
-    <input id="br" value="${item.reason}" placeholder="封禁原因">
-    <div class="input-group">
-      <input id="bt" value="${item.time || ''}" placeholder="封禁时间">
-      <button class="time-btn" onclick="fillCurrentTime('bt')">当前时间</button>
-    </div>
-    <input id="bo" value="${item.operator || ''}" placeholder="操作人">
-    <button class="btn-save" onclick="saveBad(${id})">保存</button>
-    <button class="btn-del" onclick="delBad(${id})">删除</button>
-    <button class="btn-cancel" onclick="hidePop()">取消</button>
-  `);
-}
-
-function openAddBad() {
-  if (!isAdmin) return showToast("无管理员权限，请先验证密码");
-  
-  showPop(`
-    <button class="pop-close" onclick="hidePop()">×</button>
-    <h3 class="pop-title">新增封禁</h3>
-    <input id="bu" placeholder="玩家名">
-    <input id="br" placeholder="封禁原因">
-    <div class="input-group">
-      <input id="bt" placeholder="封禁时间">
-      <button class="time-btn" onclick="fillCurrentTime('bt')">当前时间</button>
-    </div>
-    <input id="bo" placeholder="操作人">
-    <button class="btn-save" onclick="addBad()">添加</button>
-    <button class="btn-cancel" onclick="hidePop()">取消</button>
-  `);
-}
-
-async function addBad() {
-  const username = document.getElementById('bu').value.trim();
-  const reason = document.getElementById('br').value.trim();
-  const time = document.getElementById('bt').value.trim() || getCurrentTime();
-  const operator = document.getElementById('bo').value.trim();
-  
-  if (!username) return showToast("玩家名不能为空");
-  if (!reason) return showToast("封禁原因不能为空");
-  
-  try {
-    await client.from("badlist").insert([{ username, reason, time, operator }]);
-    hidePop();
-    refresh();
-    showToast("封禁记录添加成功");
-  } catch (e) {
-    console.error('添加封禁失败:', e);
-    showToast("添加封禁失败，请重试");
-  }
-}
-
-async function saveBad(id) {
-  const username = document.getElementById('bu').value.trim();
-  const reason = document.getElementById('br').value.trim();
-  const time = document.getElementById('bt').value.trim();
-  const operator = document.getElementById('bo').value.trim();
-  
-  if (!username) return showToast("玩家名不能为空");
-  if (!reason) return showToast("封禁原因不能为空");
-  
-  try {
-    await client.from("badlist").update({ username, reason, time, operator }).eq("id", id);
-    hidePop();
-    refresh();
-    showToast("封禁记录保存成功");
-  } catch (e) {
-    console.error('保存封禁失败:', e);
-    showToast("保存封禁失败，请重试");
-  }
-}
-
-async function delBad(id) {
-  if (!confirm("确定删除该封禁记录吗？")) return;
-  
-  try {
-    await client.from("badlist").delete().eq("id", id);
-    hidePop();
-    refresh();
-    showToast("封禁记录删除成功");
-  } catch (e) {
-    console.error('删除封禁失败:', e);
-    showToast("删除封禁失败，请重试");
-  }
-}
-
-function openDonate() {
-  if (confirm("确定前往爱发电支持作者吗？")) {
-    window.open("https://ifdian.net/a/StarRingEngr","_blank");
-  }
-}
-
-// ===================== 搜索功能 =====================
-document.getElementById("searchInput").addEventListener("input", () => {
-  const keyword = document.getElementById("searchInput").value.toLowerCase().trim();
-  if (!keyword) {
-    renderGood();
-    return;
-  }
-  
-  const filteredGoods = goods.filter(item => 
-    item.name.toLowerCase().includes(keyword) || 
-    item.info?.toLowerCase().includes(keyword)
-  );
-  
-  const goodList = document.getElementById('goodList');
-  if (filteredGoods.length === 0) {
-    goodList.innerHTML = '<div style="padding:20px;text-align:center;color:var(--color-tip)">未找到匹配的商品</div>';
-    return;
-  }
-  
-  goodList.innerHTML = filteredGoods.map(item => `
-    <div class="item" onclick="openEditGood(${item.id})">
-      ${renderItemImage(item.name, item.info)}
-      <div class="item-content">
-        <div class="name">${item.name}</div>
-        <div class="tip">价格：${item.price}</div>
-        ${item.info ? `<div class="tip-detail">备注：${item.info}</div>` : ''}
-      </div>
-    </div>
-  `).join("");
-});
-
-// ===================== 初始化应用 =====================
-function initApp() {
-  // 初始化主题和样式
-  initTheme();
-  
-  // 绑定核心事件
-  document.getElementById('authBtn').onclick = doAuth;
-  document.getElementById('modeToggle').onclick = toggleTheme;
-  document.getElementById('settingBtn').onclick = openColorSettingsPanel;
-  
-  // 加载数据
-  refresh();
-  
-  showToast("应用初始化完成");
-}
-
-// 页面加载完成后初始化
-document.addEventListener('DOMContentLoaded', initApp);
+  loadProxyList();
 </script>
