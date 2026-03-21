@@ -1,0 +1,5 @@
+{"name":"chop","desc":"chop主商店页面","url":"chop.html","icon":"⚙️","target":"_self"}
+{"name":"sf在线计算器","desc":"Slimefun助手","url":"https://starringengr.github.io/slimefunAsstOL/","icon":"🧮","target":"_blank"}
+{"name":"巧克力服非官方在线地图","desc":"动态地图,左侧可切换地图","url":"http://srte.work.gd:32685/#mapcworld","icon":"🗺️","target":"_blank"}
+{"name":"ChocolateMC文档","desc":"巧克力服官方文档站,类似于wiki的东西","url":"https://doc.mc.zgwl.eu.org/","icon":"📄","target":"_blank"}
+{"name":"巧克力服状态查询","desc":"4个api","url":"mc-status.html","target":"_self"}

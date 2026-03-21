@@ -1,48 +1,14 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>zzb120107的价目表</title>
+<title>代理价目表 - 可配置模板</title>
 <link rel="stylesheet" href="../shared.css">
-<style>
-  .list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 12px;
-    padding: 0 16px 20px;
-  }
-  .item {
-    padding: 12px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: var(--bg-item);
-    border-radius: 8px;
-  }
-  .item-img {
-    width: 64px;
-    height: 64px;
-    border-radius: 8px;
-    object-fit: cover;
-    display: none;
-  }
-  .item-info {
-    flex: 1;
-  }
-  .name {
-    font-weight: bold;
-    font-size: 14px;
-    margin-bottom: 4px;
-  }
-  .price {
-    font-size: 12px;
-    color: var(--color-tip);
-  }
-</style>
 
 <div class="top">
   <div class="visitor">游客模式（只读）</div>
+  <button class="back-home-btn" onclick="location.href='index.html'">🏠 返回主页</button>
   <div class="right-bar">
     <button class="mode-btn" id="modeToggle">切换亮色模式</button>
-    <div class="ver" id="ver">V1.2.1</div>
+    <div class="ver" id="ver"></div>
     <button class="donate-btn" id="donateBtn">捐赠</button>
   </div>
 </div>
@@ -54,6 +20,7 @@
 
 <script src="../shared.js"></script>
 <script>
+  // ===================== 配置区域（修改这里即可生成新页面） =====================
   const CONFIG = {
     PAGE_TITLE: "zzb120107的价目表",
     VERSION: "V1.2.1",
@@ -71,6 +38,7 @@
       ["凋零玫瑰", "0.005"]
     ]
   };
+  // ===================== 以下代码无需修改 =====================
 
   const el = {
     pageTitle: document.getElementById("pageTitle"),
@@ -84,7 +52,7 @@
   el.ver.textContent = CONFIG.VERSION;
 
   const renderGoods = (goods = CONFIG.GOODS) => {
-    const validGoods = goods.filter(item => item[0].trim() || item[1].trim());
+    const validGoods = goods.filter(item => item[0]?.trim() || item[1]?.trim());
     if (validGoods.length === 0) {
       el.goodsList.innerHTML = '<div style="padding:20px;text-align:center;color:var(--color-tip)">暂无商品数据</div>';
       return;
@@ -93,8 +61,8 @@
       <div class="item">
         <img src="" class="item-img" style="display:none">
         <div class="item-info">
-          <div class="name">${name}</div>
-          <div class="price">价格：${price}</div>
+          <div class="name">${escapeHtml(name)}</div>
+          <div class="price">价格：${escapeHtml(price)}</div>
         </div>
       </div>
     `;
@@ -102,7 +70,7 @@
   };
 
   el.donateBtn.addEventListener('click', () => {
-    confirm("确定前往爱发电支持作者吗？") && window.open("https://ifdian.net/a/StarRingEngr","_blank");
+      confirm("确定前往支持作者吗？") && window.open("https://ifdian.net/a/StarRingEngr", "_blank");
   });
 
   el.search.addEventListener("input", (e) => {

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>MC服务器状态 - 多API查询</title>
+<link rel="stylesheet" href="../shared.css">
+
+<div class="top">
+  <div class="visitor">游客模式（只读）</div>
+  <button class="back-home-btn" onclick="location.href='index.html'">🏠 返回主页</button>
+  <div class="right-bar">
+    <button class="mode-btn" id="modeToggle">切换亮色模式</button>
+    <div class="ver" id="ver"></div>
+    <button class="donate-btn" id="donateBtn">捐赠</button>
+  </div>
+</div>
+
+<div class="title" id="pageTitle" style="padding:12px 16px;margin:10px 16px;background:var(--bg-item);border-radius:8px;"></div>
+
+<div class="mc-status-container">
+  <select id="serverSelect" class="mc-server-select"></select>
+  <button id="refreshBtn" class="mc-refresh-btn">🔄 一键刷新所有状态</button>
+
+  <div class="mc-status-grid">
+    <div class="mc-status-card mc-status-iframe">
+      <div class="mc-status-title">🖼️ MineBBS 状态卡片</div>
+      <iframe id="frame-minebbs" frameborder="0" width="100%" scrolling="no"></iframe>
+    </div>
+
+    <div class="mc-status-card">
+      <div class="mc-status-title">📡 中文MC服务器API</div>
+      <div id="res-minebbs" class="mc-status-text">等待查询...</div>
+    </div>
+
+    <div class="mc-status-card">
+      <div class="mc-status-title">🖼️ MC站长之家 状态图</div>
+      <img id="img-mczfw" style="max-width:100%;border-radius:8px">
+    </div>
+
+    <div class="mc-status-card">
+      <div class="mc-status-title">⚡ FrostLynx 专业API</div>
+      <div id="res-frostlynx" class="mc-status-text">等待查询...</div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="../shared.js"></script>
+
+<script>
+// ===================== 【你自己配置服务器列表】 =====================
+const SERVER_LIST = [
+  { name: "主服务器 mc.zgwl.eu.org", ip: "mc.zgwl.eu.org", port: 25565 },
+  { name: "备用服务器 mccd.zgwl.eu.org", ip: "mccd.zgwl.eu.org", port: 25565 },
+];
+
+// ===================== 页面配置 =====================
+const CONFIG = {
+  PAGE_TITLE: "MC 多API 服务器状态查询",
+  VERSION: "V2.3",
+};
+
+// ===================== DOM元素 =====================
+const el = {
+  pageTitle: document.getElementById("pageTitle"),
+  ver: document.getElementById("ver"),
+  donateBtn: document.getElementById("donateBtn"),
+  serverSelect: document.getElementById("serverSelect"),
+  refreshBtn: document.getElementById("refreshBtn"),
+  frameMinebbs: document.getElementById("frame-minebbs"),
+  resMinebbs: document.getElementById("res-minebbs"),
+  imgMczfw: document.getElementById("img-mczfw"),
+  resFrostlynx: document.getElementById("res-frostlynx"),
+};
+
+// 初始化
+el.pageTitle.textContent = CONFIG.PAGE_TITLE;
+el.ver.textContent = CONFIG.VERSION;
+el.donateBtn.onclick = () => confirm("支持作者？") && window.open("https://ifdian.net/a/StarRingEngr","_blank");
+
+// 加载服务器列表
+function loadServerList() {
+  SERVER_LIST.forEach(s => {
+    const opt = document.createElement("option");
+    opt.value = s.ip + "|" + s.port;
+    opt.textContent = s.name;
+    el.serverSelect.appendChild(opt);
+  });
+}
+
+// 获取当前服务器
+function getCurrentServer() {
+  const [ip, port] = el.serverSelect.value.split("|");
+  return { ip, port: Number(port) };
+}
+
+// ===================== 【核心：只修复高度】 =====================
+function refreshIframe(ip, port) {
+  const frame = el.frameMinebbs;
+  
+  // 先给一个足够大的基础高度，防止一开始被截断
+  frame.style.height = "300px";
+  
+  // 加载 iframe
+  frame.src = `https://motd.minebbs.com/iframe?ip=${ip}&port=${port}&stype=srv&srv=true&dark=false`;
+
+  // 加载完成后自动获取真实高度并撑开
+  frame.onload = () => {
+    setTimeout(() => {
+      try {
+        // 获取内部真实高度
+        const height = frame.contentDocument.body.scrollHeight;
+        // 强制设置为内容高度 + 20px 安全边距
+        frame.style.height = (height || 320) + 20 + "px";
+      } catch (e) {
+        // 跨域无法获取时，使用安全高度
+        frame.style.height = "320px";
+      }
+    }, 800);
+  };
+}
+
+// ===================== 刷新所有 =====================
+async function refreshAll() {
+  const { ip, port } = getCurrentServer();
+  el.refreshBtn.disabled = true;
+  el.refreshBtn.textContent = "刷新中...";
+  showToast("查询：" + ip);
+
+  // 1. 自适应高度 iframe
+  refreshIframe(ip, port);
+
+  // 2. MC 站长图片
+  el.imgMczfw.src = `https://list.mczfw.com/mc/${ip}.png?${Date.now()}`;
+
+  // 3. 中文MC API
+  el.resMinebbs.textContent = "查询中...";
+  fetch(`https://www.minecraftservers.cn/api/query?ip=${ip}`)
+    .then(r=>r.json()).then(d=>{
+      if (d.online) el.resMinebbs.innerHTML = `✅ 在线<br>人数：${d.players}/${d.maxplayers}<br>版本：${d.version}`;
+      else el.resMinebbs.innerHTML = "❌ 离线";
+    }).catch(()=>el.resMinebbs.innerHTML="❌ 查询失败");
+
+  // 4. FrostLynx
+  el.resFrostlynx.textContent = "查询中...";
+  fetch(`https://bs.frostlynx.work:44400/v1/status/java/${ip}?port=${port}`)
+    .then(r=>r.json()).then(d=>{
+      if (d.status === "online") el.resFrostlynx.innerHTML = `✅ 在线<br>人数：${d.players.online}/${d.players.max}<br>延迟：${d.latency}ms<br>版本：${d.version.name}`;
+      else el.resFrostlynx.innerHTML = "❌ 离线";
+    }).catch(()=>el.resFrostlynx.innerHTML="❌ 查询失败");
+
+  setTimeout(()=>{
+    el.refreshBtn.disabled = false;
+    el.refreshBtn.textContent = "🔄 一键刷新所有状态";
+  }, 1200);
+}
+
+// 绑定事件
+el.serverSelect.addEventListener("change", refreshAll);
+el.refreshBtn.addEventListener("click", refreshAll);
+
+window.onload = () => {
+  loadServerList();
+  refreshAll();
+  showToast("页面加载完成");
+};
+</script>

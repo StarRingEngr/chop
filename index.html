@@ -2,66 +2,6 @@
 <meta charset="utf-8">
 <title>导航主页</title>
 <link rel="stylesheet" href="shared.css">
-<style>
-  .nav-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
-    padding: 20px 16px;
-  }
-  .nav-card {
-    background: var(--bg-item);
-    border-radius: 12px;
-    padding: 20px;
-    text-align: center;
-    transition: transform 0.2s;
-    text-decoration: none;
-    color: var(--color-text);
-    display: block;
-  }
-  .nav-card:hover {
-    transform: translateY(-5px);
-    background: var(--bg-collapse-header);
-  }
-  .nav-card h3 {
-    margin-bottom: 10px;
-  }
-  .nav-card p {
-    font-size: 14px;
-    color: var(--color-tip);
-  }
-  .external-links {
-    margin: 20px 16px;
-    padding: 15px;
-    background: var(--bg-custom-text);
-    border-radius: 12px;
-    text-align: center;
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 12px;
-  }
-  .external-links a {
-    display: inline-block;
-    padding: 8px 16px;
-    background: var(--btn-add);
-    color: white;
-    text-decoration: none;
-    border-radius: 8px;
-  }
-  .section-title {
-    margin: 20px 16px 0;
-    font-size: 18px;
-    font-weight: bold;
-    border-left: 4px solid var(--btn-add);
-    padding-left: 12px;
-  }
-  .loading {
-    text-align: center;
-    padding: 20px;
-    color: var(--color-tip);
-  }
-</style>
 
 <div class="top">
   <div class="visitor">chop导航主页</div>
@@ -76,40 +16,45 @@
   欢迎访问chop工具站(此非巧克力官方网站)！请选择你要进入的页面：
 </div>
 
-<!-- 固定入口卡片 -->
-<div class="nav-grid">
-  <a href="chop.html" class="nav-card">
-    <h3>⚙️ chop</h3>
-    <p>商品管理、封禁管理、系统设置</p>
-  </a>
-  <a href="https://space.bilibili.com/3493137687251407" class="nav-card" target="_blank">
-    <h3>👤 作者主页</h3>
-    <p>个人主页</p>
-  </a>
+<!-- 工具区域（动态渲染） -->
+<div class="category-section">
+  <div class="category-title">⚙️ 工具</div>
+  <div class="link-grid" id="internalToolsGrid"></div>
 </div>
 
-<!-- 动态代理列表区域 -->
-<div class="section-title">📦 代理价目表</div>
-<div id="proxyList" class="nav-grid">
-  <div class="loading">加载中...</div>
+<!-- 代理价目表区域（动态加载） -->
+<div class="category-section">
+  <div class="category-title">📦 代理价目表</div>
+  <div id="proxyList" class="link-grid">
+    <div class="loading">加载中...</div>
+  </div>
 </div>
 
-<div class="external-links">
-  <span>外部链接：</span>
-  <a href="https://ifdian.net/a/StarRingEngr" target="_blank">作者爱发电</a>
-  <a href="https://github.com/StarRingEngr/chop" target="_blank">此项目GitHub</a>
-  <a href="https://starringengr.github.io/slimefunAsstOL/" target="_blank">sf在线计算器</a>
-  <a href="http://srte.work.gd:32685/" target="_blank">巧克力服非官方在线地图</a>
-  <a href="https://mc.zgwl.eu.org" target="_blank">巧克力服官网</a>
+<!-- 外部链接区域（动态渲染） -->
+<div class="category-section">
+  <div class="category-title">🔗 常用链接</div>
+  <div class="link-grid" id="externalLinks"></div>
 </div>
 
 <script src="shared.js"></script>
 <script>
+  // 以下为原有函数，保持不变
+  function renderLinkGrid(containerId, links) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = links.map(link => `
+      <a href="${link.url}" class="nav-card" target="${link.target || '_blank'}">
+        <h3>${link.icon || '🔗'} ${escapeHtml(link.name)}</h3>
+        <p>${escapeHtml(link.desc)}</p>
+      </a>
+    `).join('');
+  }
+
   function openDonate() {
     if (confirm("确定前往爱发电支持作者吗？")) window.open("https://ifdian.net/a/StarRingEngr","_blank");
   }
 
-  // 加载 JSONL 代理列表
+  // 加载 JSONL 代理列表（原样保留）
   async function loadProxyList() {
     const container = document.getElementById('proxyList');
     try {
@@ -135,15 +80,38 @@
     }
   }
 
-  function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/[&<>]/g, function(m) {
-      if (m === '&') return '&amp;';
-      if (m === '<') return '&lt;';
-      if (m === '>') return '&gt;';
-      return m;
-    });
+  // 新增：加载工具列表
+  async function loadInternalTools() {
+    try {
+      const res = await fetch('internal-tools.jsonl');
+      const text = await res.text();
+      const lines = text.split('\n').filter(l => l.trim());
+      const tools = lines.map(l => JSON.parse(l));
+      renderLinkGrid('internalToolsGrid', tools);
+    } catch (e) {
+      document.getElementById('internalToolsGrid').innerHTML = '<div class="loading">工具列表加载失败</div>';
+    }
   }
 
-  loadProxyList();
+  // 新增：加载外部链接
+  async function loadExternalLinks() {
+    try {
+      const res = await fetch('external-links.jsonl');
+      const text = await res.text();
+      const lines = text.split('\n').filter(l => l.trim());
+      const links = lines.map(l => JSON.parse(l));
+      renderLinkGrid('externalLinks', links);
+    } catch (e) {
+      document.getElementById('externalLinks').innerHTML = '<div class="loading">外部链接加载失败</div>';
+    }
+  }
+
+  // 初始化（调用顺序不变，代理列表保持原样）
+  function init() {
+    loadInternalTools();
+    loadExternalLinks();
+    loadProxyList();
+  }
+
+  init();
 </script>

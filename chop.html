@@ -2,14 +2,10 @@
 <meta charset="utf-8">
 <title>系统面板 - 管理后台</title>
 <link rel="stylesheet" href="shared.css">
-<style>
-  .right-bar .ver {
-    margin-left: 0;
-  }
-</style>
 
 <div class="top">
   <button class="auth-btn" id="authBtn">游客模式</button>
+  <button class="back-home-btn" onclick="location.href='index.html'">🏠 返回主页</button>
   <div class="right-bar">
     <button class="mode-btn" id="modeToggle">切换亮色模式</button>
     <div class="ver">v1.10.1完整版</div>
@@ -161,9 +157,9 @@ function renderGood() {
     <div class="item" onclick="openEditGood(${item.id})">
       ${renderItemImage(item.name, item.info)}
       <div class="item-content">
-        <div class="name">${item.name}</div>
-        <div class="tip">价格：${item.price}</div>
-        ${item.info ? `<div class="tip-detail">备注：${item.info}</div>` : ''}
+        <div class="name">${escapeHtml(item.name)}</div>
+        <div class="tip">价格：${escapeHtml(item.price)}</div>
+        ${item.info ? `<div class="tip-detail">备注：${escapeHtml(item.info)}</div>` : ''}
       </div>
     </div>
   `).join("");
@@ -179,10 +175,10 @@ function renderBad() {
     <div class="item" onclick="openEditBad(${item.id})">
       ${renderItemImage(item.username)}
       <div class="item-content">
-        <div class="name">${item.username}</div>
-        <div class="tip">原因：${item.reason}</div>
-        ${item.time ? `<div class="tip-detail">时间：${item.time}</div>` : ''}
-        ${item.operator ? `<div class="tip-detail">操作人：${item.operator}</div>` : ''}
+        <div class="name">${escapeHtml(item.username)}</div>
+        <div class="tip">原因：${escapeHtml(item.reason)}</div>
+        ${item.time ? `<div class="tip-detail">时间：${escapeHtml(item.time)}</div>` : ''}
+        ${item.operator ? `<div class="tip-detail">操作人：${escapeHtml(item.operator)}</div>` : ''}
       </div>
     </div>
   `).join("");
@@ -196,9 +192,9 @@ function openEditGood(id) {
   showPop(`
     <button class="pop-close" onclick="hidePop()">×</button>
     <h3 class="pop-title">编辑商品</h3>
-    <input id="gn" value="${item.name}" placeholder="商品名称">
-    <input id="gp" value="${item.price}" placeholder="商品价格">
-    <input id="gi" value="${item.info || ''}" placeholder="商品备注">
+    <input id="gn" value="${escapeHtml(item.name)}" placeholder="商品名称">
+    <input id="gp" value="${escapeHtml(item.price)}" placeholder="商品价格">
+    <input id="gi" value="${escapeHtml(item.info || '')}" placeholder="商品备注">
     <button class="btn-save" onclick="saveGood(${id})">保存</button>
     <button class="btn-del" onclick="delGood(${id})">删除</button>
     <button class="btn-cancel" onclick="hidePop()">取消</button>
@@ -271,13 +267,13 @@ function openEditBad(id) {
   showPop(`
     <button class="pop-close" onclick="hidePop()">×</button>
     <h3 class="pop-title">编辑封禁</h3>
-    <input id="bu" value="${item.username}" placeholder="玩家名">
-    <input id="br" value="${item.reason}" placeholder="封禁原因">
+    <input id="bu" value="${escapeHtml(item.username)}" placeholder="玩家名">
+    <input id="br" value="${escapeHtml(item.reason)}" placeholder="封禁原因">
     <div class="input-group">
-      <input id="bt" value="${item.time || ''}" placeholder="封禁时间">
+      <input id="bt" value="${escapeHtml(item.time || '')}" placeholder="封禁时间">
       <button class="time-btn" onclick="fillCurrentTime('bt')">当前时间</button>
     </div>
-    <input id="bo" value="${item.operator || ''}" placeholder="操作人">
+    <input id="bo" value="${escapeHtml(item.operator || '')}" placeholder="操作人">
     <button class="btn-save" onclick="saveBad(${id})">保存</button>
     <button class="btn-del" onclick="delBad(${id})">删除</button>
     <button class="btn-cancel" onclick="hidePop()">取消</button>
@@ -371,9 +367,9 @@ document.getElementById("searchInput").addEventListener("input", () => {
     <div class="item" onclick="openEditGood(${item.id})">
       ${renderItemImage(item.name, item.info)}
       <div class="item-content">
-        <div class="name">${item.name}</div>
-        <div class="tip">价格：${item.price}</div>
-        ${item.info ? `<div class="tip-detail">备注：${item.info}</div>` : ''}
+        <div class="name">${escapeHtml(item.name)}</div>
+        <div class="tip">价格：${escapeHtml(item.price)}</div>
+        ${item.info ? `<div class="tip-detail">备注：${escapeHtml(item.info)}</div>` : ''}
       </div>
     </div>
   `).join("");

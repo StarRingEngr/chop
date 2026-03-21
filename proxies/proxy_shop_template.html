@@ -2,44 +2,10 @@
 <meta charset="utf-8">
 <title>代理价目表 - 可配置模板</title>
 <link rel="stylesheet" href="../shared.css">
-<style>
-  .list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 12px;
-    padding: 0 16px 20px;
-  }
-  .item {
-    padding: 12px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: var(--bg-item);
-    border-radius: 8px;
-  }
-  .item-img {
-    width: 64px;
-    height: 64px;
-    border-radius: 8px;
-    object-fit: cover;
-    display: none;
-  }
-  .item-info {
-    flex: 1;
-  }
-  .name {
-    font-weight: bold;
-    font-size: 14px;
-    margin-bottom: 4px;
-  }
-  .price {
-    font-size: 12px;
-    color: var(--color-tip);
-  }
-</style>
 
 <div class="top">
   <div class="visitor">游客模式（只读）</div>
+  <button class="back-home-btn" onclick="location.href='index.html'">🏠 返回主页</button>
   <div class="right-bar">
     <button class="mode-btn" id="modeToggle">切换亮色模式</button>
     <div class="ver" id="ver"></div>
@@ -54,8 +20,8 @@
 
 <script src="../shared.js"></script>
 <script>
-  <!-- 使用这个生成base64 https://www.toolhelper.cn/Image/Base64?tab=image -->
   // ===================== 配置区域（修改这里即可生成新页面） =====================
+  <!-- 使用这个生成base64 https://www.toolhelper.cn/Image/Base64?tab=image -->
   const CONFIG = {
     PAGE_TITLE: "xxx的价目表",           // 页面标题（显示在顶部标题栏）
     VERSION: "V1.0.0",                   // 版本号（显示在顶部右侧）
@@ -63,8 +29,7 @@
       ["示例商品1", "10.00"],            // 价格可以是任意文本
       ["示例商品2", "20.00"],
       ["示例商品3", "30.00"]
-    ],
-    DONATE_URL: "https://ifdian.net/a/StarRingEngr",  
+    ]
   };
   // ===================== 以下代码无需修改 =====================
 
@@ -97,22 +62,8 @@
     el.goodsList.innerHTML = validGoods.map(createItemHtml).join("");
   };
 
-  function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/[&<>]/g, function(m) {
-      if (m === '&') return '&amp;';
-      if (m === '<') return '&lt;';
-      if (m === '>') return '&gt;';
-      return m;
-    });
-  }
-
   el.donateBtn.addEventListener('click', () => {
-    if (CONFIG.DONATE_URL) {
-      confirm("确定前往支持作者吗？") && window.open(CONFIG.DONATE_URL, "_blank");
-    } else {
-      showToast("暂未设置捐赠链接");
-    }
+      confirm("确定前往支持作者吗？") && window.open("https://ifdian.net/a/StarRingEngr", "_blank");
   });
 
   el.search.addEventListener("input", (e) => {
