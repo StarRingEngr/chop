@@ -10,3 +10,6 @@
 
 ## 说明
 本项目为个人自用导航页面，无多余依赖，轻量化、高性能、易扩展。
+
+## 已有的部分wiki
+- [Slimefun-什么是Slimefun](#Slimefun/什么是Slimefun)
