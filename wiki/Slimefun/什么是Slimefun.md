@@ -1,3 +1,4 @@
+[返回上级目录](#README)
 # 什么是 Slimefun
 Slimefun（中文常称**粘液科技**，简称 SF）是一款面向 Minecraft 服务器的 **Bukkit 系开源插件**，诞生于 2013 年，由开发者 mrCookieSlime 最初打造，核心目标是让纯原版服务器在**无需安装客户端 Mod** 的前提下，获得接近 Mod 整合包的丰富玩法与深度体验。
 

@@ -1,3 +1,4 @@
+[返回上级目录](#Slimefun/什么是Slimefun)
 # Slimefun 分类导航
 
 ## 分类

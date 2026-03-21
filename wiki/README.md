@@ -14,3 +14,4 @@
 ---
 ## 已有的部分wiki
 - [Slimefun-什么是Slimefun](#Slimefun/什么是Slimefun)
+- [HRIS](#HRIS/HRIS)
