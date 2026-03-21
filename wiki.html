@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <title>Wiki 文档</title>
+<meta name="description" content="Slimefun 教程、Wiki 文档、实用工具与计算器">
+<link rel="icon" href="favicon.ico">
 <link rel="stylesheet" href="../shared.css">
 
 <div class="top">
@@ -65,12 +67,12 @@ async function loadIndex() {
   } catch {}
 }
 
-// ===================== 搜索匹配算法（你要的逻辑） =====================
+// ===================== 搜索匹配算法 =====================
 function matchScore(name, q) {
   const lower = name.toLowerCase();
   const query = q.toLowerCase();
-  if (lower === query) return 1000;       // 完全一致
-  if (lower.includes(query)) return 500;  // 顺序包含
+  if (lower === query) return 1000;
+  if (lower.includes(query)) return 500;
   const chars = [...query];
   let hit = 0;
   let lastPos = -1;
@@ -94,7 +96,28 @@ function doSearch(q) {
     .map(i => i.name);
 }
 
-// ===================== 渲染下拉建议 =====================
+// ===================== 点击搜索框显示全部文件 =====================
+el.searchInput.addEventListener("focus", async () => {
+  await loadIndex();
+  if (el.searchInput.value.trim() !== '') return;
+
+  const list = indexList.slice(0, CONFIG.MAX_SUGGEST);
+  el.searchDropdown.innerHTML = '';
+
+  list.forEach(item => {
+    const div = document.createElement("div");
+    div.className = "search-item";
+    div.textContent = item;
+    div.onclick = () => {
+      location.hash = item;
+      el.searchInput.value = "";
+      el.searchDropdown.innerHTML = "";
+    };
+    el.searchDropdown.appendChild(div);
+  });
+});
+
+// ===================== 输入搜索 =====================
 el.searchInput.addEventListener("input", async () => {
   await loadIndex();
   const q = el.searchInput.value.trim();
@@ -128,7 +151,8 @@ async function render() {
     const res = await fetch(url);
     if (!res.ok) throw 404;
     const text = await res.text();
-    el.wikiTitle.textContent = path.replace(".md", "");
+    // 自动解码中文，修复乱码
+    el.wikiTitle.textContent = decodeURIComponent(path.replace(".md", ""));
     el.wikiContent.innerHTML = marked.parse(text);
   } catch {
     el.wikiTitle.textContent = "页面不存在";
