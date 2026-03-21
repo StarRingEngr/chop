@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Wiki 文档</title>
+<link rel="stylesheet" href="../shared.css">
+
+<div class="top">
+  <button class="back-home-btn" onclick="location.href='index.html'">🏠 返回主页</button>
+  <div class="right-bar">
+    <button class="mode-btn" id="modeToggle">切换亮色模式</button>
+  </div>
+</div>
+
+<!-- 搜索 + 下拉建议 -->
+<div class="search-wrapper">
+  <input type="text" class="search" id="searchInput" placeholder="搜索 Wiki 文档...">
+  <div class="search-dropdown" id="searchDropdown"></div>
+</div>
+
+<!-- Wiki 内容 -->
+<div class="wiki-container">
+  <div class="wiki-title" id="wikiTitle">Wiki 首页</div>
+  <div class="wiki-content" id="wikiContent">加载中...</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="../shared.js"></script>
+<script>
+// ===================== 配置 =====================
+const CONFIG = {
+  WIKI: "wiki",
+  INDEX: "search-index.json",
+  DEFAULT: "README",
+  MAX_SUGGEST: 20
+};
+
+// ===================== DOM =====================
+const el = {
+  searchInput: document.getElementById("searchInput"),
+  searchDropdown: document.getElementById("searchDropdown"),
+  wikiTitle: document.getElementById("wikiTitle"),
+  wikiContent: document.getElementById("wikiContent"),
+};
+
+let indexList = [];
+let libLoaded = false;
+
+// ===================== 懒加载 marked =====================
+async function loadMarked() {
+  if (libLoaded || window.marked) return true;
+  return new Promise(res => {
+    const s = document.createElement("script");
+    s.src = "../lib/marked.min.js";
+    s.onload = () => { libLoaded = true; res(true); };
+    document.head.appendChild(s);
+  });
+}
+
+// ===================== 加载搜索索引 =====================
+async function loadIndex() {
+  if (indexList.length) return;
+  try {
+    const r = await fetch(CONFIG.INDEX);
+    indexList = await r.json() || [];
+  } catch {}
+}
+
+// ===================== 搜索匹配算法（你要的逻辑） =====================
+function matchScore(name, q) {
+  const lower = name.toLowerCase();
+  const query = q.toLowerCase();
+  if (lower === query) return 1000;       // 完全一致
+  if (lower.includes(query)) return 500;  // 顺序包含
+  const chars = [...query];
+  let hit = 0;
+  let lastPos = -1;
+  for (const c of chars) {
+    const p = lower.indexOf(c, lastPos + 1);
+    if (p === -1) continue;
+    hit++;
+    lastPos = p;
+  }
+  return hit;
+}
+
+// ===================== 搜索并排序 =====================
+function doSearch(q) {
+  if (!q || !indexList.length) return [];
+  return indexList
+    .map(n => ({ name: n, score: matchScore(n, q) }))
+    .filter(i => i.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, CONFIG.MAX_SUGGEST)
+    .map(i => i.name);
+}
+
+// ===================== 渲染下拉建议 =====================
+el.searchInput.addEventListener("input", async () => {
+  await loadIndex();
+  const q = el.searchInput.value.trim();
+  const list = doSearch(q);
+  el.searchDropdown.innerHTML = "";
+  if (!list.length) return;
+  list.forEach(item => {
+    const div = document.createElement("div");
+    div.className = "search-item";
+    div.textContent = item;
+    div.onclick = () => {
+      location.hash = item;
+      el.searchInput.value = "";
+      el.searchDropdown.innerHTML = "";
+    };
+    el.searchDropdown.appendChild(div);
+  });
+});
+
+// ===================== 渲染 Wiki =====================
+async function render() {
+  await loadMarked();
+  await loadIndex();
+  let path = location.hash.slice(1) || CONFIG.DEFAULT;
+  if (!path.endsWith(".md")) path += ".md";
+  const url = `${CONFIG.WIKI}/${path}`;
+  el.wikiTitle.textContent = "读取中...";
+  el.searchDropdown.innerHTML = "";
+
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw 404;
+    const text = await res.text();
+    el.wikiTitle.textContent = path.replace(".md", "");
+    el.wikiContent.innerHTML = marked.parse(text);
+  } catch {
+    el.wikiTitle.textContent = "页面不存在";
+    el.wikiContent.innerHTML = `
+      <div class="not-found">
+        哎呦，你找的页面好像不存在。<br>
+        <a href="#${CONFIG.DEFAULT}" class="back-btn">回到首页</a>
+      </div>`;
+  }
+}
+
+// ===================== 启动 =====================
+window.onload = async () => {
+  await loadIndex();
+  render();
+};
+window.addEventListener("hashchange", render);
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".search-wrapper")) el.searchDropdown.innerHTML = "";
+});
+</script>
