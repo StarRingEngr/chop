@@ -3,7 +3,7 @@
 <title>Wiki 文档</title>
 <meta name="description" content="Slimefun 教程、Wiki 文档、实用工具、计算器">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="/shared.css">
+<link rel="stylesheet" href="shared.css">
 
 <div class="top">
   <button class="back-home-btn" onclick="location.href='index.html'">🏠 返回主页</button>
@@ -32,7 +32,7 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="/shared.js"></script>
+<script src="shared.js"></script>
 <script>
 // ===================== 你原版配置（完全不动） =====================
 const CONFIG = {
@@ -58,7 +58,7 @@ async function loadMarked() {
   if (libLoaded || window.marked) return true;
   return new Promise(res => {
     const s = document.createElement("script");
-    s.src = "/lib/marked.min.js";
+    s.src = "lib/marked.min.js";
     s.onload = () => { libLoaded = true; res(true); };
     document.head.appendChild(s);
   });
