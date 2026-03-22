@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>页面标题</title>
+
+<!-- 公共资源 -->
+<link rel="stylesheet" href="/shared.css">
+<script src="/shared.js"></script>
+
+<!-- 顶部基础栏 -->
+<div class="top">
+  <button class="back-home-btn" onclick="location.href='/index.html'">🏠 返回主页</button>
+  <div class="right-bar">
+    <button class="mode-btn" id="modeToggle">切换亮色模式</button>
+    <button class="donate-btn" id="donateBtn">捐赠</button>
+  </div>
+</div>
+
+<!-- 页面内容区域（你自由编写） -->
+<div class="container" style="padding:16px;">
+  
+</div>
+
+<!-- 全局提示 -->
+<div class="toast" id="toast"></div>
+
+<script>
+// 仅保留基础功能（无任何可配置项）
+document.getElementById('donateBtn').onclick = () => {
+  confirm('确定前往支持作者吗？') && window.open('https://ifdian.net/a/StarRingEngr', '_blank');
+};
+
+window.onload = () => {
+  showToast('页面加载完成');
+};
+</script>
