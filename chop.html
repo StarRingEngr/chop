@@ -8,7 +8,7 @@
   <button class="back-home-btn" onclick="location.href='index.html'">🏠 返回主页</button>
   <div class="right-bar">
     <button class="mode-btn" id="modeToggle">切换亮色模式</button>
-    <div class="ver">v1.10.1完整版</div>
+    <div class="ver">v1.12.1完整版</div>
     <button class="donate-btn" onclick="openDonate()">捐赠</button>
   </div>
 </div>
@@ -66,36 +66,68 @@ const CIPHER = "2cab452a86cc1a46ee9300dc33401135ca30e5749cef346a36b26cac0d96b4bd
 
 let isAdmin = false;
 let goods = [], bans = [];
+let imageMap = {}; // 图片base64字典
 let client = supabase.createClient(SUPABASE_URL, READ_KEY);
+
+// ===================== 修复转义函数 =====================
+function escapeHtml(str) {
+  if (!str) return '';
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
 
 // ===================== 工具函数 =====================
 function showPop(html) {
   document.getElementById("pop").innerHTML = html;
   document.getElementById("mask").style.display = "flex";
 }
-
 function hidePop() {
   document.getElementById("mask").style.display = "none";
 }
-
 function toggleCollapse(id) {
   const body = document.getElementById(id);
   const toggle = document.getElementById(id.replace('Collapse', 'Toggle'));
-  if (body.style.display === 'none') {
-    body.style.display = 'block';
-    toggle.textContent = '^';
-  } else {
-    body.style.display = 'none';
-    toggle.textContent = 'v';
+  body.style.display = body.style.display === 'none' ? 'block' : 'none';
+  toggle.textContent = body.style.display === 'block' ? '^' : 'v';
+}
+
+// ===================== 智能图片加载（你要的逻辑） =====================
+// 1. 加载图片JSON（一次请求）
+async function loadImageMap() {
+  try {
+    const res = await fetch('./images.png.json');
+    imageMap = await res.json() || {};
+  } catch (e) {
+    imageMap = {};
   }
 }
 
+// 2. 智能匹配：优先名称 → 再备注 → 无则返回空
 function renderItemImage(itemName, info) {
-  const imgName = (info && info.trim()) ? info.trim() : itemName;
-  return `<img src="./images/${imgName}.png" class="item-img" onerror="this.style.display='none'">`;
+  let base64 = '';
+  
+  // 第一步：用【名称】找
+  if (itemName && imageMap[itemName]) {
+    base64 = imageMap[itemName];
+  }
+  // 第二步：名称找不到 → 用【备注】找
+  else if (info && info.trim() && imageMap[info.trim()]) {
+    base64 = imageMap[info.trim()];
+  }
+  // 第三步：都找不到 → 不显示图片
+  else {
+    return '';
+  }
+
+  // 直接输出base64，无懒加载、无延迟、无警告
+  return `<img src="${base64}" class="item-img">`;
 }
 
-// ===================== 认证和数据加载 =====================
+// ===================== 认证 =====================
 async function xorDecrypt(hexStr, key) {
   const enc = new TextEncoder();
   const keyData = enc.encode(key);
@@ -103,7 +135,7 @@ async function xorDecrypt(hexStr, key) {
   const hashBytes = new Uint8Array(hashBuffer);
   const dataBytes = new Uint8Array(hexStr.match(/.{1,2}/g).map(b => parseInt(b,16)));
   const res = new Uint8Array(dataBytes.length);
-  for(let i=0; i<dataBytes.length; i++) res[i] = dataBytes[i] ^ hashBytes[i % hashBytes.length];
+  for(let i=0;i<dataBytes.length;i++) res[i] = dataBytes[i] ^ hashBytes[i % hashBytes.length];
   return new TextDecoder().decode(res);
 }
 
@@ -133,12 +165,15 @@ async function doAuth() {
   }
 }
 
+// ===================== 并行请求（速度翻倍） =====================
 async function refresh() {
   try {
-    const { data: iv } = await client.from("iv").select("*");
-    const { data: bad } = await client.from("badlist").select("*");
-    goods = iv || [];
-    bans = bad || [];
+    const [ivRes, badRes] = await Promise.all([
+      client.from("iv").select("*"),
+      client.from("badlist").select("*")
+    ]);
+    goods = ivRes.data || [];
+    bans = badRes.data || [];
     renderGood();
     renderBad();
   } catch (e) {
@@ -184,7 +219,7 @@ function renderBad() {
   `).join("");
 }
 
-// ===================== 商品管理 =====================
+// ===================== 商品管理（完全不变） =====================
 function openEditGood(id) {
   if (!isAdmin) return showToast("无管理员权限，请先验证密码");
   const item = goods.find(x => x.id === id);
@@ -200,7 +235,6 @@ function openEditGood(id) {
     <button class="btn-cancel" onclick="hidePop()">取消</button>
   `);
 }
-
 function openAddGood() {
   if (!isAdmin) return showToast("无管理员权限，请先验证密码");
   showPop(`
@@ -213,7 +247,6 @@ function openAddGood() {
     <button class="btn-cancel" onclick="hidePop()">取消</button>
   `);
 }
-
 async function addGood() {
   const name = document.getElementById('gn').value.trim();
   const price = document.getElementById('gp').value.trim();
@@ -229,7 +262,6 @@ async function addGood() {
     showToast("添加商品失败，请重试");
   }
 }
-
 async function saveGood(id) {
   const name = document.getElementById('gn').value.trim();
   const price = document.getElementById('gp').value.trim();
@@ -245,7 +277,6 @@ async function saveGood(id) {
     showToast("保存商品失败，请重试");
   }
 }
-
 async function delGood(id) {
   if (!confirm("确定删除该商品吗？")) return;
   try {
@@ -259,7 +290,7 @@ async function delGood(id) {
   }
 }
 
-// ===================== 封禁管理 =====================
+// ===================== 封禁管理（完全不变） =====================
 function openEditBad(id) {
   if (!isAdmin) return showToast("无管理员权限，请先验证密码");
   const item = bans.find(x => x.id === id);
@@ -279,7 +310,6 @@ function openEditBad(id) {
     <button class="btn-cancel" onclick="hidePop()">取消</button>
   `);
 }
-
 function openAddBad() {
   if (!isAdmin) return showToast("无管理员权限，请先验证密码");
   showPop(`
@@ -296,7 +326,6 @@ function openAddBad() {
     <button class="btn-cancel" onclick="hidePop()">取消</button>
   `);
 }
-
 async function addBad() {
   const username = document.getElementById('bu').value.trim();
   const reason = document.getElementById('br').value.trim();
@@ -314,7 +343,6 @@ async function addBad() {
     showToast("添加封禁失败，请重试");
   }
 }
-
 async function saveBad(id) {
   const username = document.getElementById('bu').value.trim();
   const reason = document.getElementById('br').value.trim();
@@ -332,7 +360,6 @@ async function saveBad(id) {
     showToast("保存封禁失败，请重试");
   }
 }
-
 async function delBad(id) {
   if (!confirm("确定删除该封禁记录吗？")) return;
   try {
@@ -357,7 +384,7 @@ document.getElementById("searchInput").addEventListener("input", () => {
     renderGood();
     return;
   }
-  const filteredGoods = goods.filter(item => item.name.toLowerCase().includes(keyword) || item.info?.toLowerCase().includes(keyword));
+  const filteredGoods = goods.filter(item => item.name.toLowerCase().includes(keyword) || (item.info||'').toLowerCase().includes(keyword));
   const goodList = document.getElementById('goodList');
   if (filteredGoods.length === 0) {
     goodList.innerHTML = '<div style="padding:20px;text-align:center;color:var(--color-tip)">未找到匹配的商品</div>';
@@ -376,7 +403,8 @@ document.getElementById("searchInput").addEventListener("input", () => {
 });
 
 // ===================== 初始化 =====================
-function initAdmin() {
+async function initAdmin() {
+  await loadImageMap(); // 先加载图片JSON
   document.getElementById('authBtn').onclick = doAuth;
   refresh();
   showToast("管理后台初始化完成");
