@@ -14,7 +14,7 @@
 </div>
 
 <div class="search-wrapper">
-  <input type="text" class="search" id="searchInput" placeholder="搜索 Wiki 文档...">
+  <input type="text" class="search" id="searchInput" placeholder="搜索 Wiki 文档...  点我来查看最符合你的搜索的20个">
   <div class="search-dropdown" id="searchDropdown"></div>
 </div>
 
@@ -176,9 +176,9 @@ async function render() {
     el.wikiContent.innerHTML = marked.parse(text);
     renderNav();
   } catch (e) {
-    el.wikiTitle.textContent = "页面不存在";
-    el.wikiContent.innerHTML = `<div class='not-found'>找不到文档</div>`;
-  }
+    el.wikiTitle.textContent = "⚠️ 文档不存在";
+    el.wikiContent.innerHTML = `<div class='not-found'>😥 抱歉，没有找到你要访问的文档哦！<br>它可能不存在、已被删除或地址输入错误～<br><br><div class='wiki-pagination'><button onclick="location.hash='README'">返回 README 主页</button></div></div>`;
+}
 }
 
 // ===================== 启动（不动） =====================
