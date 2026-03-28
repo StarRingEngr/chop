@@ -59,7 +59,7 @@
   async function loadProxyList() {
     const container = document.getElementById('proxyList');
     try {
-      const response = await fetch('proxy-list.jsonl');
+      const response = await fetch('json/proxy-list.jsonl');
       if (!response.ok) throw new Error('代理列表加载失败');
       const text = await response.text();
       const lines = text.split('\n').filter(line => line.trim() !== '');
@@ -84,7 +84,7 @@
   // 新增：加载工具列表
   async function loadInternalTools() {
     try {
-      const res = await fetch('internal-tools.jsonl');
+      const res = await fetch('json/internal-tools.jsonl');
       const text = await res.text();
       const lines = text.split('\n').filter(l => l.trim());
       const tools = lines.map(l => JSON.parse(l));
@@ -97,7 +97,7 @@
   // 新增：加载外部链接
   async function loadExternalLinks() {
     try {
-      const res = await fetch('external-links.jsonl');
+      const res = await fetch('json/external-links.jsonl');
       const text = await res.text();
       const lines = text.split('\n').filter(l => l.trim());
       const links = lines.map(l => JSON.parse(l));

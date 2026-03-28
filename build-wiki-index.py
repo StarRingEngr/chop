@@ -3,7 +3,7 @@ import os
 import json
 
 WIKI_FOLDER = "wiki"
-OUTPUT = "search-index.json"
+OUTPUT = "json/search-index.json"
 
 files = []
 for root, _, filenames in os.walk(WIKI_FOLDER):

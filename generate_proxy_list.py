@@ -56,7 +56,7 @@ def scan_proxies(proxies_dir='proxies'):
             })
     return proxies
 
-def write_jsonl(proxies, output_file='proxy-list.jsonl'):
+def write_jsonl(proxies, output_file='json/proxy-list.jsonl'):
     """
     将代理列表写入 JSONL 文件（每行一个 JSON 对象）。
     """

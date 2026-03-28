@@ -93,7 +93,7 @@ function toggleCollapse(id) {
 // ===================== 智能图片加载 =====================
 async function loadImageMap() {
   try {
-    const res = await fetch('./images.png.json');
+    const res = await fetch('./json/images.png.json');
     imageMap = await res.json() || {};
   } catch (e) { imageMap = {}; }
 }
