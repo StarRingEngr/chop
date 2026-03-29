@@ -1,3 +1,4 @@
+[返回SREM2](#SREM2/SREM2)
 # SREM2人员管理
 
 ---
@@ -34,6 +35,8 @@
     27. Rainmo
     28. dcoev
     29. icefen
+    30. cyq
+    31. juhuabaotailang
 
 ## 黑名单
     1. MinecraftCurious
