@@ -5,3 +5,4 @@
 {"name":"ChocolateMC文档","desc":"巧克力服官方文档站,类似于wiki的东西","url":"https://doc.mc.zgwl.eu.org/","icon":"📄","target":"_blank"}
 {"name":"巧克力服状态查询","desc":"4个api来对巧克力服状态进行精准查询","url":"mc-status.html","target":"_self"}
 {"name":"Radius-Raid","desc":"一个超高难度的射击游戏","url":"Radius-Raid","target":"_self"}
+{"name":"账号封禁倒计时","desc":"知道他们什么时候回来吗？","url":"ban-countdown.html","target":"_self"}

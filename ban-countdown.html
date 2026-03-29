@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>封禁倒计时</title>
+
+<!-- 公共资源 -->
+<link rel="stylesheet" href="/shared.css">
+<script src="/shared.js"></script>
+
+<!-- 顶部基础栏 -->
+<div class="top">
+  <button class="back-home-btn" onclick="location.href='/index.html'">🏠 返回主页</button>
+  <div class="right-bar">
+    <button class="mode-btn" id="modeToggle">切换亮色模式</button>
+    <button class="donate-btn" id="donateBtn">捐赠</button>
+  </div>
+</div>
+
+<!-- 页面内容区域（倒计时功能） -->
+<div class="container" style="padding:16px;">
+  <h2>账号解除封禁倒计时</h2>
+  <div id="banList"></div>
+</div>
+
+<!-- 全局提示 -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ====================== 【配置区：自行修改封禁名单】======================
+// 格式：["名字", "解封时间(格式：YYYY.MM.DD:HH:mm:ss)"]
+const banUsers = [
+  ["zzb120107", "2026.04.07:00:00:00"],
+];
+// ======================================================================
+
+// 倒计时刷新函数
+function updateCountdown() {
+  const listEl = document.getElementById("banList");
+  let html = "";
+
+  banUsers.forEach(item => {
+    const name = item[0];
+    const timeStr = item[1].replace(/\./g, "-").replace(":", " ");
+    const endTime = new Date(timeStr).getTime();
+    const now = Date.now();
+    const diff = endTime - now;
+
+    // 已解封
+    if (diff <= 0) {
+      html += `<p><strong>${name}</strong>：✅ 已解除封禁</p>`;
+      return;
+    }
+
+    // 计算时间
+    const seconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    const y = Math.floor(days / 365);
+    const mo = Math.floor((days % 365) / 30);
+    const d = Math.floor((days % 365) % 30);
+    const h = hours % 24;
+    const m = minutes % 60;
+    const s = seconds % 60;
+
+    // 时间数组
+    const timeArr = [
+      { val: y, unit: "年" },
+      { val: mo, unit: "月" },
+      { val: d, unit: "日" },
+      { val: h, unit: "小时" },
+      { val: m, unit: "分钟" },
+      { val: s, unit: "秒" },
+    ];
+
+    // 自动隐藏开头的0，保留后续0
+    let showArr = [];
+    let startShow = false;
+    timeArr.forEach(item => {
+      if (item.val !== 0) startShow = true;
+      if (startShow) showArr.push(`${item.val}${item.unit}`);
+    });
+
+    const timeText = showArr.join(" ");
+    html += `<p><strong>${name}</strong>：解除封禁还有 ${timeText}</p>`;
+  });
+
+  listEl.innerHTML = html;
+}
+
+// 原有基础功能
+document.getElementById('donateBtn').onclick = () => {
+  confirm('确定前往支持作者吗？') && window.open('https://ifdian.net/a/StarRingEngr', '_blank');
+};
+
+window.onload = () => {
+  showToast('页面加载完成');
+  updateCountdown();
+  setInterval(updateCountdown, 1000);
+};
+</script>
