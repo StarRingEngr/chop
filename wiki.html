@@ -5,9 +5,15 @@
 <link rel="icon" href="favicon.ico">
 <link rel="stylesheet" href="shared.css">
 
+<!-- 【纯新增 1】Tally弹窗全局引用，不改动原有任何标签 -->
+<script async src="https://tally.so/widgets/embed.js"></script>
+
 <div class="top">
   <button class="back-home-btn" onclick="location.href='index.html'">🏠 返回主页</button>
   <div class="right-bar">
+    <button class="donate-btn" style="margin-left:8px;"data-tally-open="J9LvKK" data-tally-layout="modal" data-tally-emoji-text="👋" data-tally-emoji-animation="wave">
+      sf教程请求
+    </button>
     <button class="mode-btn" id="modeToggle">切换亮色模式</button>
     <button class="donate-btn" onclick="confirm('确定前往爱发电支持作者吗？')&&window.open('https://ifdian.net/a/StarRingEngr','_blank')">捐赠</button>
   </div>
@@ -161,7 +167,6 @@ async function render() {
   await loadIndex();
   let path = location.hash.slice(1) || CONFIG.DEFAULT;
   
-  // ✅✅✅ 你原来的正确逻辑！我彻底恢复！绝对不动！
   if (!path.endsWith(".md")) path += ".md";
 
   const url = `${CONFIG.WIKI}/${path}`;
