@@ -19,3 +19,4 @@
 - [Slimefun-什么是Slimefun](#Slimefun/什么是Slimefun)
 - [HRIS](#HRIS/HRIS)
 - [SREM2基地](#SREM2/SREM2)
+- [协议](#Treaty/协议)
